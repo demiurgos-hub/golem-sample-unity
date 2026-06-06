@@ -19,10 +19,10 @@ func main() {
 	defer stop()
 
 	srv, rt := synced.NewServer(golem.ServerConfig{
-		TickRate:        20,
-		Addr:            ":8080",
-		Transport:       golem.TransportWebSocket,
-		StateUpdateLane: golem.StateUpdateLaneStream,
+		TickRate:          20,
+		Addr:              ":8080",
+		Transport:         golem.TransportWebTransport,
+		DevSelfSignedCert: true,
 	})
 
 	playerBySession := make(map[int64]int64)
@@ -52,11 +52,11 @@ func main() {
 		player.SetPosition(x+cmd.Dx*moveSpeed, y+cmd.Dy*moveSpeed)
 	})
 
-	rt.Commands.BindStreamHandler(func(sess *golem.Session, err error) {
+	rt.Commands.BindAllHandlers(func(sess *golem.Session, err error) {
 		log.Printf("command error from session %d: %v", sess.ID, err)
 	})
 
-	log.Print("golem sample server listening on ws://localhost:8080/ws")
+	log.Print("golem sample server listening on https://localhost:8080/wt")
 	if err := srv.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		log.Fatal(err)
 	}

@@ -430,7 +430,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: bfc56b17bc5f4fd887018f4892ce4292, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  url: ws://localhost:8080/ws
+  url: https://localhost:8080/wt
   connectOnStart: 1
   debugLogging: 0
   spawner: {fileID: 1094272066}

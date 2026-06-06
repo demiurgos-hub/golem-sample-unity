@@ -1,4 +1,3 @@
-using GolemEngine.Unity;
 using GolemSample.GolemGenerated;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -62,7 +61,7 @@ namespace GolemSample.Unity
             }
 
             move = Vector2.ClampMagnitude(move, 1f);
-            clientBehaviour.Client.Send(CommandBuilders.BuildMoveCommand(player.EntityId, move.x, move.y));
+            ClientFactory.SendMoveReliableUnordered(clientBehaviour.Client, player.EntityId, move.x, move.y);
         }
 
         private SyncedPlayer ResolvePlayer()
