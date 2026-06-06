@@ -1,0 +1,7 @@
+command: Move
+target: entity
+entity_type: Player
+
+fields:
+  dx: float
+  dy: float

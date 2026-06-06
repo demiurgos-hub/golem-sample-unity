@@ -1,0 +1,18 @@
+simulation:
+  dimensions: 2
+
+proto:
+  package: golemsample
+  go_package: golem-sample-unity/internal/synced
+  out: internal/synced/entities.proto
+
+integrations:
+  go-server:
+    out: internal/synced/
+    package: synced
+  csharp-client:
+    out: unity/Assets/Golem/Generated/
+    package: GolemSample.GolemGenerated
+  unity:
+    out: unity/Assets/Golem/Views/
+    package: GolemSample.GolemGenerated
