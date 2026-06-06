@@ -51,6 +51,8 @@
     "com.unity.modules.video": "1.0.0",
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
-    "com.unity.modules.xr": "1.0.0"
+    "com.unity.modules.xr": "1.0.0",
+    "io.demiurgos.golemengine": "file:C:/Demiurgos/golem-engine/artifacts/upm/io.demiurgos.golemengine",
+    "io.demiurgos.webtransport": "file:C:/Demiurgos/webtransport-csharp/artifacts/upm/io.demiurgos.webtransport"
   }
 }

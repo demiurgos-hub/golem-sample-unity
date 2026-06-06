@@ -283,6 +283,20 @@
       },
       "url": "https://packages.unity.com"
     },
+    "io.demiurgos.golemengine": {
+      "version": "file:C:/Demiurgos/golem-engine/artifacts/upm/io.demiurgos.golemengine",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {
+        "io.demiurgos.webtransport": "0.1.0"
+      }
+    },
+    "io.demiurgos.webtransport": {
+      "version": "file:C:/Demiurgos/webtransport-csharp/artifacts/upm/io.demiurgos.webtransport",
+      "depth": 0,
+      "source": "local",
+      "dependencies": {}
+    },
     "com.unity.modules.accessibility": {
       "version": "1.0.0",
       "depth": 0,
