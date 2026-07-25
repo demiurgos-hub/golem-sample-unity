@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 5085025037116302948}
   - component: {fileID: 1062777312231035424}
   - component: {fileID: 6575706554509517301}
+  - component: {fileID: 3137114611530308586}
   m_Layer: 8
   m_Name: decor_Wall
   m_TagString: Untagged
@@ -155,3 +156,16 @@ BoxCollider2D:
   m_AutoTiling: 0
   m_Size: {x: 1, y: 1}
   m_EdgeRadius: 0
+--- !u!114 &3137114611530308586
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8938106522072131923}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c2f0084ef9d1d7489f8ec286b653277, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.DecorInstance
+  decorType: {fileID: 11400000, guid: e60b7c8c75f1acd438c8c246b034645e, type: 2}

@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 4258661862582954551}
   - component: {fileID: 8060107742505405959}
   - component: {fileID: 7995729864858600713}
+  - component: {fileID: 5867424050814482485}
   m_Layer: 0
   m_Name: decor_Pavement
   m_TagString: Untagged
@@ -108,3 +109,16 @@ MonoBehaviour:
   includedLayers:
     serializedVersion: 2
     m_Bits: 256
+--- !u!114 &5867424050814482485
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8399599063039188001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6c2f0084ef9d1d7489f8ec286b653277, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.DecorInstance
+  decorType: {fileID: 11400000, guid: e7973ddb66843184a80e80c828c61830, type: 2}
