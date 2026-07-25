@@ -131,6 +131,7 @@ GameObject:
   - component: {fileID: 519420031}
   - component: {fileID: 519420029}
   - component: {fileID: 519420030}
+  - component: {fileID: 519420033}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -156,7 +157,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a79441f348de89743a2939f4d699eac1, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: 
   m_RenderShadows: 1
   m_RequiresDepthTextureOption: 2
@@ -256,6 +257,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &519420033
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 519420028}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 248445d89400cb441b2f09a87f478490, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.CameraFollow
+  localPlayer: {fileID: 1495883210}
+  dampTime: 0.15
+  deadZone: 0
 --- !u!1 &619394800
 GameObject:
   m_ObjectHideFlags: 0
@@ -283,8 +299,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 073797afb82c5a1438f328866b10b3f0, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   m_ComponentVersion: 2
   m_LightType: 4
   m_BlendStyleIndex: 0
@@ -367,7 +383,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9f43c705c4e234442bdde12c5d9ef990, type: 3}
-  m_Name:
+  m_Name: 
   m_EditorClassIdentifier: GolemEngine.Unity::GolemEngine.Unity.GolemEntitySpawner
   prefabRegistry: {fileID: 11400000, guid: 0cf81e525cf6f4b40a4129bbcfa5b3ea, type: 2}
 --- !u!4 &1094272067
@@ -396,6 +412,7 @@ GameObject:
   - component: {fileID: 1495883208}
   - component: {fileID: 1495883209}
   - component: {fileID: 1495883210}
+  - component: {fileID: 1495883211}
   m_Layer: 0
   m_Name: Golem Client
   m_TagString: Untagged
@@ -428,8 +445,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: bfc56b17bc5f4fd887018f4892ce4292, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   url: https://localhost:8080/wt
   connectOnStart: 1
   debugLogging: 0
@@ -443,10 +460,24 @@ MonoBehaviour:
   m_GameObject: {fileID: 1495883207}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8ecf4fbfd91447aa06a23c40969a702, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Script: {fileID: 11500000, guid: f5a8e2f4de6c5bb4c834bc6d9bf34928, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.LocalPlayer
   clientBehaviour: {fileID: 1495883209}
+--- !u!114 &1495883211
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1495883207}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef16aeb9205d3c047882ca2f23e9fe56, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.MoveIntentSender
+  clientBehaviour: {fileID: 1495883209}
+  localPlayer: {fileID: 1495883210}
   inputActions: {fileID: -944628639613478452, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   actionMapName: Player
   moveActionName: Move

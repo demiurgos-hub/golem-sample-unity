@@ -11,8 +11,8 @@ GameObject:
   - component: {fileID: 5686172749323846131}
   - component: {fileID: 5686172749323846132}
   - component: {fileID: 5686172749323846133}
-  - component: {fileID: 5686172749323846134}
   - component: {fileID: 8531773912095697600}
+  - component: {fileID: 8261435623085620214}
   m_Layer: 0
   m_Name: entity_Player
   m_TagString: Untagged
@@ -108,19 +108,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: GolemEngine.Unity::GolemEngine.Unity.GolemTransformBinding
   smooth: 1
   lerpSpeed: 12
---- !u!114 &5686172749323846134
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5686172749323846130}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6bb21eff12b247f28c0f8ca29b11cc64, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  transformBinding: {fileID: 5686172749323846133}
 --- !u!114 &8531773912095697600
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -134,3 +121,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.PlayerAuthoring
   Health: 0
+--- !u!114 &8261435623085620214
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5686172749323846130}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c3f95e47c657c9340a53015dada7dad7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.PlayerVisual
+  transformBinding: {fileID: 5686172749323846133}
