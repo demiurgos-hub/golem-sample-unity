@@ -1,0 +1,5 @@
+event: LocalPlayerAssigned
+target: session
+
+fields:
+  entity_id: int64

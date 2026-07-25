@@ -2,11 +2,14 @@
 package synced
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/demiurgos-hub/golem-engine/golem"
 	"github.com/demiurgos-hub/golem-engine/golem/snapshot"
 )
+
+var _ = errors.Is
 
 // SchemaFingerprint is the SHA-256 of all entity schemas at bake time.
 // Pass it to snapshot.Save / snapshot.Load to detect schema mismatches.
@@ -16,6 +19,7 @@ const SchemaFingerprint = "54edf64ce795fe3414d86e1f02e8a2c0d4eb28226cc171312c0f2
 type Runtime struct {
 	Server   *golem.Server
 	Commands *CommandRouter
+	Events   *EventBroadcaster
 }
 
 // NewServer creates a golem.Server and attaches the generated runtime helpers.
@@ -29,6 +33,7 @@ func NewRuntime(srv *golem.Server) *Runtime {
 	srv.SetRemovalSerializer(MarshalEntityRemoved)
 	rt := &Runtime{Server: srv}
 	rt.Commands = NewCommandRouter(srv)
+	rt.Events = NewEventBroadcaster(srv)
 	return rt
 }
 
@@ -234,4 +239,23 @@ func (r *CommandRouter) BindAllHandlers(onError CommandErrorHandler) {
 	r.BindStreamHandler(onError)
 	r.BindReliableUnorderedHandler(onError)
 	r.BindReliableOrderedHandler(onError)
+}
+
+// EventBroadcaster sends typed server events to connected clients.
+// FOI-filtered events must be called from the game tick goroutine when
+// interest management is active.
+type EventBroadcaster struct {
+	srv *golem.Server
+}
+
+// NewEventBroadcaster creates an EventBroadcaster bound to the given server.
+func NewEventBroadcaster(srv *golem.Server) *EventBroadcaster {
+	return &EventBroadcaster{srv: srv}
+}
+
+// SendLocalPlayerAssigned sends a LocalPlayerAssigned event to a single session.
+func (b *EventBroadcaster) SendLocalPlayerAssigned(sessionID int64, entityId int64) error {
+	evt := &LocalPlayerAssignedEvent{EntityId: entityId}
+	se := &ServerEvent{Payload: &ServerEvent_LocalPlayerAssignedEvent{LocalPlayerAssignedEvent: evt}}
+	return b.srv.Send(sessionID, golem.WrapServerEvent(se.Marshal()))
 }

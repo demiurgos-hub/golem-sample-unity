@@ -18,6 +18,7 @@ namespace GolemSample.GolemGenerated
 
             var world = new WorldManager();
 
+            var events = new EventManager(entities);
             return new GameClient(
                 entities,
                 bytes => EntityUpdate.Decode(bytes),
@@ -29,7 +30,7 @@ namespace GolemSample.GolemGenerated
                 world,
                 bytes => WorldUpdate.Decode(bytes)
 ,
-                null
+                events
             );
         }
 

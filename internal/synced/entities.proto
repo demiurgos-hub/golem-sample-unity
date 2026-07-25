@@ -85,9 +85,20 @@ message WorldUpdate {
   }
 }
 
+message LocalPlayerAssignedEvent {
+  int64 entity_id = 1;
+}
+
+message ServerEvent {
+  oneof payload {
+    LocalPlayerAssignedEvent local_player_assigned = 1;
+  }
+}
+
 message ServerMessage {
   oneof payload {
     EntityUpdate entity_update = 1;
     WorldUpdate world_update = 2;
+    ServerEvent server_event = 3;
   }
 }

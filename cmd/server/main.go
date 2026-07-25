@@ -9,12 +9,12 @@ import (
 	"os/signal"
 	"sort"
 	"syscall"
+	"time"
 
 	"github.com/demiurgos-hub/golem-engine/golem"
+	"golem-sample-unity/internal/gameplay"
 	"golem-sample-unity/internal/synced"
 )
-
-const moveSpeed = 0.12
 
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -27,6 +27,7 @@ func main() {
 		StateUpdateLane:   golem.StateUpdateLaneDatagram,
 		DevSelfSignedCert: true,
 	})
+	intents := gameplay.NewIntentStore()
 
 	if err := loadAndSpawnMonsters(srv); err != nil {
 		log.Fatal(err)
@@ -41,7 +42,11 @@ func main() {
 			return
 		}
 		playerBySession[sess.ID] = player.EntityID()
-		log.Printf("session %d connected, player entity %d spawned", sess.ID, player.EntityID())
+		if err := rt.Events.SendLocalPlayerAssigned(sess.ID, player.EntityID()); err != nil {
+			log.Printf("send LocalPlayerAssigned to session %d: %v", sess.ID, err)
+		} else {
+			log.Printf("session %d connected, player entity %d spawned, LocalPlayerAssigned sent", sess.ID, player.EntityID())
+		}
 	})
 
 	srv.OnDisconnect(func(sess *golem.Session) {
@@ -50,13 +55,34 @@ func main() {
 			return
 		}
 		delete(playerBySession, sess.ID)
+		intents.Clear(playerID)
 		srv.DeleteEntity(playerID)
 		log.Printf("session %d disconnected, player entity %d removed", sess.ID, playerID)
 	})
 
 	rt.Commands.OnMove(func(senderID int64, player *synced.SyncedPlayer, cmd *synced.MoveCommand) {
-		x, y := player.Position()
-		player.SetPosition(x+cmd.Dx*moveSpeed, y+cmd.Dy*moveSpeed)
+		_ = senderID
+		intents.Record(player.EntityID(), float64(cmd.Dx), float64(cmd.Dy), time.Now())
+	})
+
+	srv.OnTick(func(dt float64, s *golem.Server) {
+		active := intents.Active(time.Now(), gameplay.IntentExpiry)
+		for entityID, intent := range active {
+			ent, ok := s.Get(entityID)
+			if !ok {
+				intents.Clear(entityID)
+				continue
+			}
+			player, ok := ent.(*synced.SyncedPlayer)
+			if !ok {
+				continue
+			}
+			x, y := player.Position()
+			player.SetPosition(
+				x+float32(intent.DX*gameplay.PlayerMoveSpeed*dt),
+				y+float32(intent.DY*gameplay.PlayerMoveSpeed*dt),
+			)
+		}
 	})
 
 	rt.Commands.BindAllHandlers(func(sess *golem.Session, err error) {
