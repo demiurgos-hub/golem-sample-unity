@@ -49,7 +49,7 @@ PluginImporter:
       enabled: 0
       settings: {}
     OSXUniversal:
-      enabled: 0
+      enabled: 1
       settings:
         CPU: x86_64
     Win:

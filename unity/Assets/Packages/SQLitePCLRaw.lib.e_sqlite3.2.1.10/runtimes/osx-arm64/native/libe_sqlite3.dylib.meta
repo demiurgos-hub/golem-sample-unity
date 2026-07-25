@@ -44,11 +44,12 @@ PluginImporter:
       enabled: 1
       settings:
         DefaultValueInitialized: true
+        OS: OSX
     Linux64:
       enabled: 0
       settings: {}
     OSXUniversal:
-      enabled: 0
+      enabled: 1
       settings:
         CPU: ARM64
     Win:

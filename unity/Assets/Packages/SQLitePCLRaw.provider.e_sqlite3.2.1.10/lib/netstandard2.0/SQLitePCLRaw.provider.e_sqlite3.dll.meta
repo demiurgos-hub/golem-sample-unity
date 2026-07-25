@@ -20,6 +20,18 @@ PluginImporter:
       enabled: 1
       settings:
         DefaultValueInitialized: true
+    Linux64:
+      enabled: 1
+      settings: {}
+    OSXUniversal:
+      enabled: 1
+      settings: {}
+    Win:
+      enabled: 1
+      settings: {}
+    Win64:
+      enabled: 1
+      settings: {}
     WindowsStoreApps:
       enabled: 0
       settings:

@@ -252,6 +252,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 217824304}
+  - component: {fileID: 217824305}
   m_Layer: 0
   m_Name: Runtime
   m_TagString: Untagged
@@ -274,6 +275,24 @@ Transform:
   m_Children: []
   m_Father: {fileID: 985042560}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &217824305
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 217824303}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4f63b8aa9b58e1642a50435bd19db1ba, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.DecorStreamer
+  decorList: {fileID: 11400000, guid: 01668c245430e514d9a2aecd3254a247, type: 2}
+  localPlayer: {fileID: 1495883210}
+  runtimeRoot: {fileID: 217824304}
+  streamRadius: 28
+  requeryDistance: 4
+  instantiationsPerFrame: 8
 --- !u!1001 &366593458
 PrefabInstance:
   m_ObjectHideFlags: 0
