@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"flag"
 	"fmt"
 	"log"
 	"math"
@@ -14,11 +15,34 @@ import (
 	"time"
 
 	"github.com/demiurgos-hub/golem-engine/golem"
+	"github.com/demiurgos-hub/golem-engine/golem/collision"
+	"github.com/demiurgos-hub/golem-engine/golem/footprint"
+	collisionresolv "github.com/demiurgos-hub/golem-engine/golem/collision/resolv"
 	"golem-sample-unity/internal/gameplay"
 	"golem-sample-unity/internal/synced"
+	"golem-sample-unity/internal/world"
 )
 
 func main() {
+	worldDBPath := flag.String("world-db", world.DefaultWorldDBPath(),
+		"read-only path to StreamingAssets/world.db (default resolved from repo root via source path, not cwd)")
+	footprintsPath := flag.String("footprints", world.DefaultFootprintsPath(),
+		"path to footprints.golem.yaml")
+	decorCatalogPath := flag.String("decor-catalog", world.DefaultDecorTypeCatalogPath(),
+		"path to catalogs/decor_type.golem.yaml")
+	worldProbe := flag.Bool("world-probe", false,
+		"run in-process decor streaming/blocking probe then exit (no listen)")
+	flag.Parse()
+
+	if *worldDBPath == "" || *footprintsPath == "" || *decorCatalogPath == "" {
+		rootErr := ""
+		if _, err := world.RepoRoot(); err != nil {
+			rootErr = err.Error()
+		}
+		log.Fatalf("empty world asset path(s): world-db=%q footprints=%q decor-catalog=%q; %s",
+			*worldDBPath, *footprintsPath, *decorCatalogPath, rootErr)
+	}
+
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
@@ -33,6 +57,27 @@ func main() {
 		// nearby catalog spawns visible while far spawns start outside interest.
 		CellSize: gameplay.InterestCellSize,
 	})
+
+	// resolv: detection-only. Blocking uses OverlapCircle + ResolveSlide so the
+	// sample's per-axis slide stays visible (Chipmunk would own resolution).
+	backend := collisionresolv.New()
+	srv.SetCollisionBackend(backend)
+	layers := world.SetupLayers(backend)
+	decorMask := layers.Layer(world.LayerDecorCollision)
+
+	streamer, err := openWorldStreamer(*worldDBPath, *footprintsPath, *decorCatalogPath, backend, layers)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer func() { _ = streamer.DB.Close() }()
+
+	if *worldProbe {
+		if err := runWorldProbe(streamer, backend, decorMask); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
+
 	intents := gameplay.NewIntentStore()
 	// Seeded RNG keeps wander reproducible across sample runs; only touched from OnTick.
 	monsterAI := gameplay.NewMonsterAI(rand.New(rand.NewSource(1)))
@@ -78,7 +123,17 @@ func main() {
 		intents.Record(player.EntityID(), float64(cmd.Dx), float64(cmd.Dy), time.Now())
 	})
 
+	overlaps := func(x, y, radius float64) bool {
+		// Hits are synthetic negative placer IDs for decor — never treat as entity IDs.
+		return len(srv.OverlapCircle(x, y, radius, decorMask)) > 0
+	}
+
 	srv.OnTick(func(dt float64, s *golem.Server) {
+		// Fatal: a soft log would leave residency stale/empty and silently disable walls.
+		if err := streamer.Tick(streamAnchors(s)); err != nil {
+			log.Fatalf("world streamer tick failed (collision residency unsafe): %v", err)
+		}
+
 		active := intents.Active(time.Now(), gameplay.IntentExpiry)
 		for entityID, intent := range active {
 			ent, ok := s.Get(entityID)
@@ -91,10 +146,14 @@ func main() {
 				continue
 			}
 			x, y := player.Position()
-			player.SetPosition(
-				x+float32(intent.DX*gameplay.PlayerMoveSpeed*dt),
-				y+float32(intent.DY*gameplay.PlayerMoveSpeed*dt),
+			nx, ny := world.ResolveSlide(
+				float64(x), float64(y),
+				intent.DX*gameplay.PlayerMoveSpeed*dt,
+				intent.DY*gameplay.PlayerMoveSpeed*dt,
+				world.ActorRadius,
+				overlaps,
 			)
+			player.SetPosition(float32(nx), float32(ny))
 		}
 
 		speedByType := monsterSpeeds(s)
@@ -109,7 +168,15 @@ func main() {
 			if !ok {
 				continue
 			}
-			monster.SetPosition(float32(d.X), float32(d.Y))
+			cx, cy := monster.Position()
+			nx, ny := world.ResolveSlide(
+				float64(cx), float64(cy),
+				d.X-float64(cx),
+				d.Y-float64(cy),
+				world.ActorRadius,
+				overlaps,
+			)
+			monster.SetPosition(float32(nx), float32(ny))
 		}
 	})
 
@@ -118,12 +185,115 @@ func main() {
 	})
 
 	log.Printf(
-		"golem sample server listening on https://localhost:8080/wt (CellSize=%.0f FOIRadius=%.0f)",
-		gameplay.InterestCellSize, gameplay.FOIRadius,
+		"golem sample server listening on https://localhost:8080/wt (CellSize=%.0f FOIRadius=%.0f worldDB=%s)",
+		gameplay.InterestCellSize, gameplay.FOIRadius, *worldDBPath,
 	)
 	if err := srv.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		log.Fatal(err)
 	}
+}
+
+func openWorldStreamer(
+	dbPath, footprintsPath, decorCatalogPath string,
+	backend collision.Backend,
+	layers *collision.Layers,
+) (*world.Streamer, error) {
+	db, err := world.OpenDB(dbPath)
+	if err != nil {
+		return nil, err
+	}
+	set, err := footprint.Load(footprintsPath)
+	if err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("load footprints %s: %w", footprintsPath, err)
+	}
+	catalog, err := synced.LoadDecorTypeData(decorCatalogPath)
+	if err != nil {
+		_ = db.Close()
+		return nil, fmt.Errorf("load DecorType catalog %s: %w", decorCatalogPath, err)
+	}
+	placer := &footprint.Placer2D{
+		Backend: backend,
+		Resolve: footprint.LayersResolver(layers),
+	}
+	return world.NewStreamer(db, set, catalog, placer, world.StreamRadius), nil
+}
+
+// streamAnchors centers residency on every player and monster so AI cannot walk
+// through unloaded walls outside player StreamRadius. Cost: one cheap bounds
+// query per living actor per tick; far monsters over empty map regions place
+// nothing, so the authored enclosure is not loaded globally.
+func streamAnchors(s *golem.Server) []world.Anchor {
+	var out []world.Anchor
+	for _, ent := range s.All() {
+		switch e := ent.(type) {
+		case *synced.SyncedPlayer:
+			x, y := e.Position()
+			out = append(out, world.Anchor{X: float64(x), Y: float64(y)})
+		case *synced.SyncedMonster:
+			x, y := e.Position()
+			out = append(out, world.Anchor{X: float64(x), Y: float64(y)})
+		}
+	}
+	return out
+}
+
+func runWorldProbe(streamer *world.Streamer, backend *collisionresolv.ResolvBackend, decorMask uint32) error {
+	overlaps := func(x, y, radius float64) bool {
+		return len(backend.OverlapCircle(x, y, radius, decorMask)) > 0
+	}
+
+	if err := streamer.Tick([]world.PlayerPos{{X: 0, Y: 0}}); err != nil {
+		return err
+	}
+	st := streamer.Stats()
+	log.Printf("world-probe: enter place=%d remove=%d resident=%d", st.PlaceCalls, st.RemoveCalls, st.Resident)
+	if st.Resident == 0 {
+		return fmt.Errorf("world-probe: no blocking decor placed near origin")
+	}
+
+	rows, err := streamer.DB.QueryAll()
+	if err != nil {
+		return err
+	}
+	var wall world.DecorRow
+	for _, r := range rows {
+		if r.DecorTypeId == 1 {
+			wall = r
+			break
+		}
+	}
+	startX, startY := wall.PosX, wall.PosY-1.2
+	if overlaps(startX, startY, world.ActorRadius) {
+		startX, startY = wall.PosX, wall.PosY+1.2
+	}
+	step := gameplay.PlayerMoveSpeed * 0.05 // fixed tick dt
+	x, y := startX, startY
+	dir := 1.0
+	if startY > wall.PosY {
+		dir = -1.0
+	}
+	for i := 0; i < 40; i++ {
+		x, y = world.ResolveSlide(x, y, 0, dir*step, world.ActorRadius, overlaps)
+	}
+	log.Printf("world-probe: clamp against wall@(%g,%g) -> player=(%g,%g) overlapping=%v nextYBlocked=%v",
+		wall.PosX, wall.PosY, x, y, overlaps(x, y, world.ActorRadius),
+		overlaps(x, y+dir*step, world.ActorRadius))
+
+	sx, sy := world.ResolveSlide(x, y, step, dir*step, world.ActorRadius, overlaps)
+	log.Printf("world-probe: diagonal slide from clamp -> (%g,%g) dyHeld=%v dxMoved=%v overlapping=%v",
+		sx, sy, sy == y, sx != x, overlaps(sx, sy, world.ActorRadius))
+
+	if err := streamer.Tick([]world.PlayerPos{{X: 500, Y: 500}}); err != nil {
+		return err
+	}
+	st2 := streamer.Stats()
+	log.Printf("world-probe: leave place=%d remove=%d resident=%d balanced=%v",
+		st2.PlaceCalls, st2.RemoveCalls, st2.Resident, st2.PlaceCalls == st2.RemoveCalls && st2.Resident == 0)
+	if st2.Resident != 0 || st2.PlaceCalls != st2.RemoveCalls {
+		return fmt.Errorf("world-probe: place/remove unbalanced: %+v", st2)
+	}
+	return nil
 }
 
 func monsterSpeeds(s *golem.Server) map[uint32]float64 {
