@@ -1,0 +1,19 @@
+{
+  "name": "Game.Runtime",
+  "rootNamespace": "GolemSample.Unity",
+  "references": [
+    "Golem.Generated",
+    "GolemEngine.Unity",
+    "GolemEngine.Unity.WebTransport",
+    "Unity.InputSystem"
+  ],
+  "includePlatforms": [],
+  "excludePlatforms": [],
+  "allowUnsafeCode": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "autoReferenced": true,
+  "defineConstraints": [],
+  "versionDefines": [],
+  "noEngineReferences": false
+}
