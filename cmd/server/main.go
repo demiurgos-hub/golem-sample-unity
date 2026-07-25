@@ -8,7 +8,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"golem-engine/golem"
+	"github.com/demiurgos-hub/golem-engine/golem"
 	"golem-sample-unity/internal/synced"
 )
 

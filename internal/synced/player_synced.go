@@ -4,8 +4,8 @@ package synced
 import (
 	"sync"
 
-	"golem-engine/golem"
-	"golem-engine/golem/pb"
+	"github.com/demiurgos-hub/golem-engine/golem"
+	"github.com/demiurgos-hub/golem-engine/golem/pb"
 )
 
 var _ golem.Entity = (*SyncedPlayer)(nil)

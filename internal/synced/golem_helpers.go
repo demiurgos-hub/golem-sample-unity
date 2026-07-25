@@ -4,8 +4,8 @@ package synced
 import (
 	"fmt"
 
-	"golem-engine/golem"
-	"golem-engine/golem/snapshot"
+	"github.com/demiurgos-hub/golem-engine/golem"
+	"github.com/demiurgos-hub/golem-engine/golem/snapshot"
 )
 
 // SchemaFingerprint is the SHA-256 of all entity schemas at bake time.

@@ -4,7 +4,7 @@ package synced
 import (
 	"fmt"
 
-	"golem-engine/golem/pb"
+	"github.com/demiurgos-hub/golem-engine/golem/pb"
 )
 
 type PlayerState struct {

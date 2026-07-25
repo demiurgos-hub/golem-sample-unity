@@ -14,6 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: GolemEngine.Unity.Editor::GolemEngine.Unity.Editor.GolemUnityEditorSettings
   projectRoot: C:/Demiurgos/golem-sample-unity
   bakeCommandMode: 0
-  bakeCommand: go run golem-engine/cmd/golem-bake
+  bakeCommand: go run github.com/demiurgos-hub/golem-engine/cmd/golem-bake
   serverCommand: go run ./cmd/server
   assetFolder: Assets/Golem
