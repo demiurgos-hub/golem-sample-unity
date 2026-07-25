@@ -7,6 +7,64 @@ import (
 	"github.com/demiurgos-hub/golem-engine/golem/pb"
 )
 
+// MonsterType is a custom composite type.
+type MonsterType struct {
+	Id        int32
+	Name      string
+	Health    int32
+	Damage    uint32
+	MoveSpeed float32
+}
+
+// Marshal encodes MonsterType to protobuf wire format.
+func (m *MonsterType) Marshal() []byte {
+	w := &pb.Writer{}
+	if m.Id != 0 {
+		w.Tag(1, 0).Int32(m.Id)
+	}
+	if m.Name != "" {
+		w.Tag(2, 2).String(m.Name)
+	}
+	if m.Health != 0 {
+		w.Tag(3, 0).Int32(m.Health)
+	}
+	if m.Damage != 0 {
+		w.Tag(4, 0).Uint32(m.Damage)
+	}
+	if m.MoveSpeed != 0 {
+		w.Tag(5, 5).Float32(m.MoveSpeed)
+	}
+	return w.Finish()
+}
+
+// Unmarshal decodes MonsterType from protobuf wire format.
+func (m *MonsterType) Unmarshal(data []byte) (retErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			retErr = fmt.Errorf("pb: decode MonsterType: %v", r)
+		}
+	}()
+	rd := pb.NewReader(data)
+	for !rd.Done() {
+		field, wire := rd.Tag()
+		switch field {
+		case 1:
+			m.Id = rd.Int32()
+		case 2:
+			m.Name = rd.String()
+		case 3:
+			m.Health = rd.Int32()
+		case 4:
+			m.Damage = rd.Uint32()
+		case 5:
+			m.MoveSpeed = rd.Float32()
+		default:
+			rd.Skip(wire)
+		}
+	}
+	return nil
+}
+
 type MonsterState struct {
 	EntityId      int64
 	PosX          float32

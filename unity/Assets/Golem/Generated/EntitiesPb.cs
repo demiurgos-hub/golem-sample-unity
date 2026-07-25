@@ -5,6 +5,46 @@ using GolemEngine.Unity;
 
 namespace GolemSample.GolemGenerated
 {
+    public sealed class MonsterType
+    {
+        public int Id { get; set; } = 0;
+        public string Name { get; set; } = "";
+        public int Health { get; set; } = 0;
+        public uint Damage { get; set; } = 0;
+        public float MoveSpeed { get; set; } = 0f;
+
+        public static byte[] Encode(MonsterType m)
+        {
+            var w = new PbWriter();
+            if (m.Id != 0) w.Tag(1, 0).Int32(m.Id);
+            if (m.Name != "") w.Tag(2, 2).String(m.Name);
+            if (m.Health != 0) w.Tag(3, 0).Int32(m.Health);
+            if (m.Damage != 0) w.Tag(4, 0).Uint32(m.Damage);
+            if (m.MoveSpeed != 0f) w.Tag(5, 5).Float(m.MoveSpeed);
+            return w.Finish();
+        }
+
+        public static MonsterType Decode(byte[] bytes)
+        {
+            var r = new PbReader(bytes);
+            var m = new MonsterType();
+            while (!r.Done)
+            {
+                var tag = r.Tag();
+                switch (tag.Field)
+                {
+                    case 1: m.Id = r.Int32(); break;
+                    case 2: m.Name = r.String(); break;
+                    case 3: m.Health = r.Int32(); break;
+                    case 4: m.Damage = r.Uint32(); break;
+                    case 5: m.MoveSpeed = r.Float(); break;
+                    default: r.Skip(tag.Wire); break;
+                }
+            }
+            return m;
+        }
+    }
+
     public sealed class MonsterState
     {
         public long EntityId { get; set; } = 0;

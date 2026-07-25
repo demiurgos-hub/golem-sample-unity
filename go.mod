@@ -2,7 +2,10 @@ module golem-sample-unity
 
 go 1.25.4
 
-require github.com/demiurgos-hub/golem-engine v0.0.0
+require (
+	github.com/demiurgos-hub/golem-engine v0.0.0
+	gopkg.in/yaml.v3 v3.0.1
+)
 
 require (
 	github.com/coder/websocket v1.8.14 // indirect

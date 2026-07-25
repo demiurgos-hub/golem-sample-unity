@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 60d503c6bdb05fa4db3728942074bdb6, type: 3}
+  m_Name: MonsterList
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.MonsterList
+  monsters:
+  - {fileID: 11400000, guid: 13ccdf86f317c634ab383b473661ed41, type: 2}
+  - {fileID: 11400000, guid: 9ea59a658b5926e43987ee9621a72599, type: 2}

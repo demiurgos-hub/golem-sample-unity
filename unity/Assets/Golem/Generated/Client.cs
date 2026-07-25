@@ -16,6 +16,7 @@ namespace GolemSample.GolemGenerated
         {
             var entities = new EntityManager();
 
+            var world = new WorldManager();
 
             return new GameClient(
                 entities,
@@ -25,8 +26,8 @@ namespace GolemSample.GolemGenerated
                 frames => ClientPacket.Encode(frames),
                 transportFactory
 ,
-                null,
-                null
+                world,
+                bytes => WorldUpdate.Decode(bytes)
 ,
                 null
             );

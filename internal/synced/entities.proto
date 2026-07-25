@@ -3,6 +3,14 @@ syntax = "proto3";
 package golemsample;
 option go_package = "golem-sample-unity/internal/synced";
 
+message MonsterType {
+  int32 id = 1;
+  string name = 2;
+  int32 health = 3;
+  uint32 damage = 4;
+  float move_speed = 5;
+}
+
 message MonsterState {
   int64 entity_id = 1;
   float pos_x = 2;
@@ -67,8 +75,19 @@ message ClientPacket {
   repeated bytes frames = 1;
 }
 
+message MonsterTypeData {
+   items = 1;
+}
+
+message WorldUpdate {
+  oneof payload {
+    MonsterTypeData monster_type_data = 1;
+  }
+}
+
 message ServerMessage {
   oneof payload {
     EntityUpdate entity_update = 1;
+    WorldUpdate world_update = 2;
   }
 }
