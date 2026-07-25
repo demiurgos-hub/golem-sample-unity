@@ -5,6 +5,43 @@ using GolemEngine.Unity;
 
 namespace GolemSample.GolemGenerated
 {
+    public sealed class DecorType
+    {
+        public int Id { get; set; } = 0;
+        public string Name { get; set; } = "";
+        public bool Blocking { get; set; } = false;
+        public string Prefab { get; set; } = "";
+
+        public static byte[] Encode(DecorType m)
+        {
+            var w = new PbWriter();
+            if (m.Id != 0) w.Tag(1, 0).Int32(m.Id);
+            if (m.Name != "") w.Tag(2, 2).String(m.Name);
+            if (m.Blocking != false) w.Tag(3, 0).Bool(m.Blocking);
+            if (m.Prefab != "") w.Tag(4, 2).String(m.Prefab);
+            return w.Finish();
+        }
+
+        public static DecorType Decode(byte[] bytes)
+        {
+            var r = new PbReader(bytes);
+            var m = new DecorType();
+            while (!r.Done)
+            {
+                var tag = r.Tag();
+                switch (tag.Field)
+                {
+                    case 1: m.Id = r.Int32(); break;
+                    case 2: m.Name = r.String(); break;
+                    case 3: m.Blocking = r.Bool(); break;
+                    case 4: m.Prefab = r.String(); break;
+                    default: r.Skip(tag.Wire); break;
+                }
+            }
+            return m;
+        }
+    }
+
     public sealed class MonsterType
     {
         public int Id { get; set; } = 0;

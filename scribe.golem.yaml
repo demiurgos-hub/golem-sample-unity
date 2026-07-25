@@ -2,10 +2,19 @@
 version: 1
 artifacts:
   - kind: catalog_data
+    entity: DecorType
+    source_guid: 87ea89d306b587310bdcba6dfa05dff3
+    path: catalogs/decor_type.golem.yaml
+    hash: 2fd91937081abe8792d05937abbdbbdbcf591a8bad4e5cc73f6aece1b0dcbfd8
+  - kind: catalog_data
     entity: MonsterType
     source_guid: eb407b43946d7f36c93d6fd82931913d
     path: catalogs/monster_type.golem.yaml
     hash: 7662005074d195b6eb5191654021c7802b5f8ea2eb4bee5a9fcf8c4e29378c8a
+  - kind: footprint
+    source_guid: ffffffffffffffffffffffffffffffff
+    path: footprints.golem.yaml
+    hash: 5fc4e2d0005d2a22ade02516f6df83fd684e55e835dac29b87365f86605392b5
   - kind: entity_schema
     entity: Monster
     source_guid: 16a2c570c2bb77a498f273c161be43a9
@@ -17,10 +26,20 @@ artifacts:
     path: schemas/entities/player.yaml
     hash: 43b632a5bfb181bbd0160f8868045e765fea219971132e1b926fe03783eed297
   - kind: type_schema
+    entity: DecorType
+    source_guid: 87ea89d306b587310bdcba6dfa05dff3
+    path: schemas/types/decor_type.yaml
+    hash: fbffa8b389ab9f71fe29ff4a54108737de6c251fd52288a1dbbd643879c03290
+  - kind: type_schema
     entity: MonsterType
     source_guid: eb407b43946d7f36c93d6fd82931913d
     path: schemas/types/monster_type.yaml
     hash: 32ad622f88cd2cf8459925ae7e81df6ff800000e8bbffb17b555743481fb2041
+  - kind: world_schema
+    entity: DecorType
+    source_guid: 87ea89d306b587310bdcba6dfa05dff3
+    path: schemas/world/decor_type.yaml
+    hash: f9818e97f19b803e09c0518a54fc3f15e63387b26a98c895d9699bd90270d43f
   - kind: world_schema
     entity: MonsterType
     source_guid: eb407b43946d7f36c93d6fd82931913d

@@ -10,6 +10,126 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// DecorTypeData holds static world data for "DecorType".
+type DecorTypeData struct {
+	Items map[int32]DecorType
+}
+
+// WorldName returns the world type identifier.
+func (m *DecorTypeData) WorldName() string { return "DecorType" }
+
+// Marshal encodes the data to protobuf wire format (inner bytes only).
+func (m *DecorTypeData) Marshal() []byte {
+	w := &pb.Writer{}
+	for _k, _v := range m.Items {
+		_kv := &pb.Writer{}
+		_kv.Tag(1, 0).Int32(_k)
+		_kv.Tag(2, 2).Bytes(_v.Marshal())
+		w.Tag(1, 2).Bytes(_kv.Finish())
+	}
+	return w.Finish()
+}
+
+// MarshalUpdate encodes the data wrapped in a WorldUpdate oneof envelope.
+func (m *DecorTypeData) MarshalUpdate() ([]byte, error) {
+	inner := m.Marshal()
+	w := &pb.Writer{}
+	w.Tag(1, 2).Bytes(inner)
+	return w.Finish(), nil
+}
+
+// Unmarshal decodes the data from protobuf wire format.
+func (m *DecorTypeData) Unmarshal(data []byte) (retErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			retErr = fmt.Errorf("pb: decode DecorTypeData: %v", r)
+		}
+	}()
+	rd := pb.NewReader(data)
+	for !rd.Done() {
+		field, wire := rd.Tag()
+		switch field {
+		case 1:
+			_b := rd.Bytes()
+			if len(_b) > 0 {
+				_rd := pb.NewReader(_b)
+				var _k int32
+				var _v DecorType
+				for !_rd.Done() {
+					_f, _ := _rd.Tag()
+					switch _f {
+					case 1:
+						_k = _rd.Int32()
+					case 2:
+						if _err := _v.Unmarshal(_rd.Bytes()); _err != nil {
+							return _err
+						}
+					}
+				}
+				if m.Items == nil {
+					m.Items = map[int32]DecorType{}
+				}
+				m.Items[_k] = _v
+			} else {
+				if m.Items == nil {
+					m.Items = map[int32]DecorType{}
+				}
+			}
+		default:
+			rd.Skip(wire)
+		}
+	}
+	return nil
+}
+
+// LoadDecorTypeData reads the catalog YAML at path and returns a DecorTypeData ready to store in the world.Store.
+func LoadDecorTypeData(path string) (*DecorTypeData, error) {
+	raw, err := os.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	var _rows []map[string]any
+	if err := yaml.Unmarshal(raw, &_rows); err != nil {
+		return nil, err
+	}
+	d := &DecorTypeData{}
+	d.Items = make(map[int32]DecorType, len(_rows))
+	for _, _row := range _rows {
+		_elem := DecorType{}
+		if _fv, _ok := _row["id"]; _ok {
+			switch _tv := _fv.(type) {
+			case int:
+				_elem.Id = int32(_tv)
+			case int64:
+				_elem.Id = int32(_tv)
+			case float64:
+				_elem.Id = int32(_tv)
+			case string:
+				if _n, _e := strconv.ParseInt(_tv, 10, 32); _e == nil {
+					_elem.Id = int32(_n)
+				}
+			}
+		}
+		if _fv, _ok := _row["name"]; _ok {
+			if _s, _ok := _fv.(string); _ok {
+				_elem.Name = _s
+			}
+		}
+		if _fv, _ok := _row["blocking"]; _ok {
+			if _bv, _ok := _fv.(bool); _ok {
+				_elem.Blocking = _bv
+			}
+		}
+		if _fv, _ok := _row["prefab"]; _ok {
+			if _s, _ok := _fv.(string); _ok {
+				_elem.Prefab = _s
+			}
+		}
+		d.Items[_elem.Id] = _elem
+	}
+	return d, nil
+}
+
 // MonsterTypeData holds static world data for "MonsterType".
 type MonsterTypeData struct {
 	Items map[int32]MonsterType
@@ -34,7 +154,7 @@ func (m *MonsterTypeData) Marshal() []byte {
 func (m *MonsterTypeData) MarshalUpdate() ([]byte, error) {
 	inner := m.Marshal()
 	w := &pb.Writer{}
-	w.Tag(1, 2).Bytes(inner)
+	w.Tag(2, 2).Bytes(inner)
 	return w.Finish(), nil
 }
 
@@ -165,6 +285,11 @@ type isWorldUpdatePayload interface{ isWorldUpdatePayload() }
 // WorldUpdate wraps a single world data payload.
 type WorldUpdate struct{ Payload isWorldUpdatePayload }
 
+// WorldUpdate_DecorTypeData is the oneof wrapper for DecorTypeData.
+type WorldUpdate_DecorTypeData struct{ DecorTypeData *DecorTypeData }
+
+func (*WorldUpdate_DecorTypeData) isWorldUpdatePayload() {}
+
 // WorldUpdate_MonsterTypeData is the oneof wrapper for MonsterTypeData.
 type WorldUpdate_MonsterTypeData struct{ MonsterTypeData *MonsterTypeData }
 
@@ -174,8 +299,10 @@ func (*WorldUpdate_MonsterTypeData) isWorldUpdatePayload() {}
 func (m *WorldUpdate) Marshal() []byte {
 	w := &pb.Writer{}
 	switch p := m.Payload.(type) {
+	case *WorldUpdate_DecorTypeData:
+		w.Tag(1, 2).Bytes(p.DecorTypeData.Marshal())
 	case *WorldUpdate_MonsterTypeData:
-		w.Tag(1, 2).Bytes(p.MonsterTypeData.Marshal())
+		w.Tag(2, 2).Bytes(p.MonsterTypeData.Marshal())
 	}
 	return w.Finish()
 }
@@ -192,6 +319,12 @@ func (m *WorldUpdate) Unmarshal(data []byte) (retErr error) {
 		field, wire := rd.Tag()
 		switch field {
 		case 1:
+			sub := &DecorTypeData{}
+			if err := sub.Unmarshal(rd.Bytes()); err != nil {
+				return err
+			}
+			m.Payload = &WorldUpdate_DecorTypeData{DecorTypeData: sub}
+		case 2:
 			sub := &MonsterTypeData{}
 			if err := sub.Unmarshal(rd.Bytes()); err != nil {
 				return err

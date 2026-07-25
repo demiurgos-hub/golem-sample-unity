@@ -7,6 +7,58 @@ import (
 	"github.com/demiurgos-hub/golem-engine/golem/pb"
 )
 
+// DecorType is a custom composite type.
+type DecorType struct {
+	Id       int32
+	Name     string
+	Blocking bool
+	Prefab   string
+}
+
+// Marshal encodes DecorType to protobuf wire format.
+func (m *DecorType) Marshal() []byte {
+	w := &pb.Writer{}
+	if m.Id != 0 {
+		w.Tag(1, 0).Int32(m.Id)
+	}
+	if m.Name != "" {
+		w.Tag(2, 2).String(m.Name)
+	}
+	if m.Blocking {
+		w.Tag(3, 0).Bool(m.Blocking)
+	}
+	if m.Prefab != "" {
+		w.Tag(4, 2).String(m.Prefab)
+	}
+	return w.Finish()
+}
+
+// Unmarshal decodes DecorType from protobuf wire format.
+func (m *DecorType) Unmarshal(data []byte) (retErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			retErr = fmt.Errorf("pb: decode DecorType: %v", r)
+		}
+	}()
+	rd := pb.NewReader(data)
+	for !rd.Done() {
+		field, wire := rd.Tag()
+		switch field {
+		case 1:
+			m.Id = rd.Int32()
+		case 2:
+			m.Name = rd.String()
+		case 3:
+			m.Blocking = rd.Bool()
+		case 4:
+			m.Prefab = rd.String()
+		default:
+			rd.Skip(wire)
+		}
+	}
+	return nil
+}
+
 // MonsterType is a custom composite type.
 type MonsterType struct {
 	Id        int32

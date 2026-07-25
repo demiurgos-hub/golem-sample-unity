@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bac363cfd3285f543aaa2a848cd43efe, type: 3}
+  m_Name: PavementType
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.DecorType
+  Id: 2
+  Name: Pavement
+  Blocking: 0
+  Prefab: {fileID: 8399599063039188001, guid: c1026043c388f5e4f9068d0e7bea4437, type: 3}

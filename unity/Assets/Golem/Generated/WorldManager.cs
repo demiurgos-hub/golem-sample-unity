@@ -8,6 +8,18 @@ namespace GolemSample.GolemGenerated
     public sealed class WorldManager : IWorldManager
     {
 
+        private DecorTypeData _decorType;
+        private Action<DecorTypeData> _onDecorTypeUpdate;
+
+        public DecorTypeData DecorType => _decorType;
+        public void OnDecorTypeUpdate(Action<DecorTypeData> fn) { _onDecorTypeUpdate = fn; }
+
+        public DecorType GetDecorTypeById(int id)
+        {
+            return _decorType != null && _decorType.Items.TryGetValue(id, out var item) ? item : null;
+        }
+
+
         private MonsterTypeData _monsterType;
         private Action<MonsterTypeData> _onMonsterTypeUpdate;
 
@@ -28,6 +40,12 @@ namespace GolemSample.GolemGenerated
         public void ApplyUpdate(WorldUpdate update)
         {
 
+            if (update.DecorTypeData != null)
+            {
+                _decorType = update.DecorTypeData;
+                _onDecorTypeUpdate?.Invoke(update.DecorTypeData);
+                return;
+            }
             if (update.MonsterTypeData != null)
             {
                 _monsterType = update.MonsterTypeData;

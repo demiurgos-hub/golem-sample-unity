@@ -3,6 +3,13 @@ syntax = "proto3";
 package golemsample;
 option go_package = "golem-sample-unity/internal/synced";
 
+message DecorType {
+  int32 id = 1;
+  string name = 2;
+  bool blocking = 3;
+  string prefab = 4;
+}
+
 message MonsterType {
   int32 id = 1;
   string name = 2;
@@ -75,13 +82,18 @@ message ClientPacket {
   repeated bytes frames = 1;
 }
 
+message DecorTypeData {
+   items = 1;
+}
+
 message MonsterTypeData {
    items = 1;
 }
 
 message WorldUpdate {
   oneof payload {
-    MonsterTypeData monster_type_data = 1;
+    DecorTypeData decor_type_data = 1;
+    MonsterTypeData monster_type_data = 2;
   }
 }
 

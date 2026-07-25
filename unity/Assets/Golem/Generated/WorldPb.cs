@@ -5,6 +5,64 @@ using GolemEngine.Unity;
 
 namespace GolemSample.GolemGenerated
 {
+    public sealed class DecorTypeData
+    {
+        public Dictionary<int, DecorType> Items { get; set; } = new Dictionary<int, DecorType>();
+
+        public static byte[] Encode(DecorTypeData m)
+        {
+            var w = new PbWriter();
+            foreach (var pair in m.Items)
+            {
+                var kv = new PbWriter();
+                kv.Tag(1, 0).Int32(pair.Key);
+                kv.Tag(2, 2).Bytes(DecorType.Encode(pair.Value));
+                w.Tag(1, 2).Bytes(kv.Finish());
+            }
+            return w.Finish();
+        }
+
+        public static DecorTypeData Decode(byte[] bytes)
+        {
+            var r = new PbReader(bytes);
+            var m = new DecorTypeData();
+            while (!r.Done)
+            {
+                var tag = r.Tag();
+                switch (tag.Field)
+                {
+                    case 1:
+                    {
+                        var payload = r.Bytes();
+                        if (payload.Length > 0)
+                        {
+                            var itemReader = new PbReader(payload);
+                            var key = 0;
+                            var value = new DecorType();
+                            while (!itemReader.Done)
+                            {
+                                var itemTag = itemReader.Tag();
+                                switch (itemTag.Field)
+                                {
+                                    case 1: key = itemReader.Int32(); break;
+                                    case 2: value = DecorType.Decode(itemReader.Bytes()); break;
+                                    default: itemReader.Skip(itemTag.Wire); break;
+                                }
+                            }
+                            m.Items[key] = value;
+                        }
+                        else
+                        {
+                        }
+                        break;
+                    }
+                    default: r.Skip(tag.Wire); break;
+                }
+            }
+            return m;
+        }
+    }
+
     public sealed class MonsterTypeData
     {
         public Dictionary<int, MonsterType> Items { get; set; } = new Dictionary<int, MonsterType>();
@@ -65,6 +123,7 @@ namespace GolemSample.GolemGenerated
 
     public sealed class WorldUpdate
     {
+        public DecorTypeData DecorTypeData { get; set; }
         public MonsterTypeData MonsterTypeData { get; set; }
 
         public static WorldUpdate Decode(byte[] bytes)
@@ -76,7 +135,8 @@ namespace GolemSample.GolemGenerated
                 var tag = r.Tag();
                 switch (tag.Field)
                 {
-                    case 1: m.MonsterTypeData = MonsterTypeData.Decode(r.Bytes()); break;
+                    case 1: m.DecorTypeData = DecorTypeData.Decode(r.Bytes()); break;
+                    case 2: m.MonsterTypeData = MonsterTypeData.Decode(r.Bytes()); break;
                     default: r.Skip(tag.Wire); break;
                 }
             }
