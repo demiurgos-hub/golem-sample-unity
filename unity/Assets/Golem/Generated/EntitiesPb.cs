@@ -5,12 +5,96 @@ using GolemEngine.Unity;
 
 namespace GolemSample.GolemGenerated
 {
+    public sealed class MonsterState
+    {
+        public long EntityId { get; set; } = 0;
+        public float PosX { get; set; } = 0f;
+        public float PosY { get; set; } = 0f;
+        public ulong Revision { get; set; } = 0;
+        public uint MonsterTypeId { get; set; } = 0;
+        public int Health { get; set; } = 0;
+
+        public static byte[] Encode(MonsterState m)
+        {
+            var w = new PbWriter();
+            if (m.EntityId != 0) w.Tag(1, 0).Int64(m.EntityId);
+            if (m.PosX != 0f) w.Tag(2, 5).Float(m.PosX);
+            if (m.PosY != 0f) w.Tag(3, 5).Float(m.PosY);
+            if (m.Revision != 0) w.Tag(1000, 0).Uint64(m.Revision);
+            if (m.MonsterTypeId != 0) w.Tag(4, 0).Uint32(m.MonsterTypeId);
+            if (m.Health != 0) w.Tag(5, 0).Int32(m.Health);
+            return w.Finish();
+        }
+
+        public static MonsterState Decode(byte[] bytes)
+        {
+            var r = new PbReader(bytes);
+            var m = new MonsterState();
+            while (!r.Done)
+            {
+                var tag = r.Tag();
+                switch (tag.Field)
+                {
+                    case 1: m.EntityId = r.Int64(); break;
+                    case 2: m.PosX = r.Float(); break;
+                    case 3: m.PosY = r.Float(); break;
+                    case 1000: m.Revision = r.Uint64(); break;
+                    case 4: m.MonsterTypeId = r.Uint32(); break;
+                    case 5: m.Health = r.Int32(); break;
+                    default: r.Skip(tag.Wire); break;
+                }
+            }
+            return m;
+        }
+    }
+
+    public sealed class MonsterDelta
+    {
+        public long EntityId { get; set; } = 0;
+        public float? PosX { get; set; }
+        public float? PosY { get; set; }
+        public ulong Revision { get; set; } = 0;
+        public int? Health { get; set; }
+
+        public static byte[] Encode(MonsterDelta m)
+        {
+            var w = new PbWriter();
+            if (m.EntityId != 0) w.Tag(1, 0).Int64(m.EntityId);
+            if (m.PosX.HasValue) w.Tag(2, 5).Float(m.PosX.Value);
+            if (m.PosY.HasValue) w.Tag(3, 5).Float(m.PosY.Value);
+            if (m.Revision != 0) w.Tag(1000, 0).Uint64(m.Revision);
+            if (m.Health.HasValue) w.Tag(5, 0).Int32(m.Health.Value);
+            return w.Finish();
+        }
+
+        public static MonsterDelta Decode(byte[] bytes)
+        {
+            var r = new PbReader(bytes);
+            var m = new MonsterDelta();
+            while (!r.Done)
+            {
+                var tag = r.Tag();
+                switch (tag.Field)
+                {
+                    case 1: m.EntityId = r.Int64(); break;
+                    case 2: m.PosX = r.Float(); break;
+                    case 3: m.PosY = r.Float(); break;
+                    case 1000: m.Revision = r.Uint64(); break;
+                    case 5: m.Health = r.Int32(); break;
+                    default: r.Skip(tag.Wire); break;
+                }
+            }
+            return m;
+        }
+    }
+
     public sealed class PlayerState
     {
         public long EntityId { get; set; } = 0;
         public float PosX { get; set; } = 0f;
         public float PosY { get; set; } = 0f;
         public ulong Revision { get; set; } = 0;
+        public int Health { get; set; } = 0;
 
         public static byte[] Encode(PlayerState m)
         {
@@ -19,6 +103,7 @@ namespace GolemSample.GolemGenerated
             if (m.PosX != 0f) w.Tag(2, 5).Float(m.PosX);
             if (m.PosY != 0f) w.Tag(3, 5).Float(m.PosY);
             if (m.Revision != 0) w.Tag(1000, 0).Uint64(m.Revision);
+            if (m.Health != 0) w.Tag(4, 0).Int32(m.Health);
             return w.Finish();
         }
 
@@ -35,6 +120,7 @@ namespace GolemSample.GolemGenerated
                     case 2: m.PosX = r.Float(); break;
                     case 3: m.PosY = r.Float(); break;
                     case 1000: m.Revision = r.Uint64(); break;
+                    case 4: m.Health = r.Int32(); break;
                     default: r.Skip(tag.Wire); break;
                 }
             }
@@ -48,6 +134,7 @@ namespace GolemSample.GolemGenerated
         public float? PosX { get; set; }
         public float? PosY { get; set; }
         public ulong Revision { get; set; } = 0;
+        public int? Health { get; set; }
 
         public static byte[] Encode(PlayerDelta m)
         {
@@ -56,6 +143,7 @@ namespace GolemSample.GolemGenerated
             if (m.PosX.HasValue) w.Tag(2, 5).Float(m.PosX.Value);
             if (m.PosY.HasValue) w.Tag(3, 5).Float(m.PosY.Value);
             if (m.Revision != 0) w.Tag(1000, 0).Uint64(m.Revision);
+            if (m.Health.HasValue) w.Tag(4, 0).Int32(m.Health.Value);
             return w.Finish();
         }
 
@@ -72,6 +160,7 @@ namespace GolemSample.GolemGenerated
                     case 2: m.PosX = r.Float(); break;
                     case 3: m.PosY = r.Float(); break;
                     case 1000: m.Revision = r.Uint64(); break;
+                    case 4: m.Health = r.Int32(); break;
                     default: r.Skip(tag.Wire); break;
                 }
             }
@@ -112,6 +201,8 @@ namespace GolemSample.GolemGenerated
 
     public sealed class EntityUpdate
     {
+        public MonsterState MonsterState { get; set; }
+        public MonsterDelta MonsterDelta { get; set; }
         public PlayerState PlayerState { get; set; }
         public PlayerDelta PlayerDelta { get; set; }
         public EntityRemoved EntityRemoved { get; set; }
@@ -125,9 +216,11 @@ namespace GolemSample.GolemGenerated
                 var tag = r.Tag();
                 switch (tag.Field)
                 {
-                    case 1: m.PlayerState = PlayerState.Decode(r.Bytes()); break;
-                    case 2: m.PlayerDelta = PlayerDelta.Decode(r.Bytes()); break;
-                    case 3: m.EntityRemoved = EntityRemoved.Decode(r.Bytes()); break;
+                    case 1: m.MonsterState = MonsterState.Decode(r.Bytes()); break;
+                    case 2: m.MonsterDelta = MonsterDelta.Decode(r.Bytes()); break;
+                    case 3: m.PlayerState = PlayerState.Decode(r.Bytes()); break;
+                    case 4: m.PlayerDelta = PlayerDelta.Decode(r.Bytes()); break;
+                    case 5: m.EntityRemoved = EntityRemoved.Decode(r.Bytes()); break;
                     default: r.Skip(tag.Wire); break;
                 }
             }

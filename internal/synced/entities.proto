@@ -3,11 +3,29 @@ syntax = "proto3";
 package golemsample;
 option go_package = "golem-sample-unity/internal/synced";
 
+message MonsterState {
+  int64 entity_id = 1;
+  float pos_x = 2;
+  float pos_y = 3;
+  uint64 revision = 1000;
+  uint32 monster_type_id = 4;
+  int32 health = 5;
+}
+
+message MonsterDelta {
+  int64 entity_id = 1;
+  optional float pos_x = 2;
+  optional float pos_y = 3;
+  uint64 revision = 1000;
+  optional int32 health = 5;
+}
+
 message PlayerState {
   int64 entity_id = 1;
   float pos_x = 2;
   float pos_y = 3;
   uint64 revision = 1000;
+  int32 health = 4;
 }
 
 message PlayerDelta {
@@ -15,6 +33,7 @@ message PlayerDelta {
   optional float pos_x = 2;
   optional float pos_y = 3;
   uint64 revision = 1000;
+  optional int32 health = 4;
 }
 
 message EntityRemoved {
@@ -24,9 +43,11 @@ message EntityRemoved {
 
 message EntityUpdate {
   oneof payload {
-    PlayerState player_state = 1;
-    PlayerDelta player_delta = 2;
-    EntityRemoved entity_removed = 3;
+    MonsterState monster_state = 1;
+    MonsterDelta monster_delta = 2;
+    PlayerState player_state = 3;
+    PlayerDelta player_delta = 4;
+    EntityRemoved entity_removed = 5;
   }
 }
 

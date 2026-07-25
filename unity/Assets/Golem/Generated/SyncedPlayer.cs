@@ -16,6 +16,7 @@ namespace GolemSample.GolemGenerated
         public float PosY { get; private set; }
         public ulong Revision { get; private set; }
 
+        public int Health { get; private set; } = 0;
 
         public void ApplyState(PlayerState state)
         {
@@ -23,6 +24,7 @@ namespace GolemSample.GolemGenerated
             PosY = state.PosY;
             Revision = state.Revision;
 
+            Health = state.Health;
         }
 
         public void ApplyDelta(PlayerDelta delta)
@@ -31,6 +33,7 @@ namespace GolemSample.GolemGenerated
             if (delta.PosX.HasValue) PosX = delta.PosX.Value;
             if (delta.PosY.HasValue) PosY = delta.PosY.Value;
 
+            if (delta.Health.HasValue) Health = delta.Health.Value;
         }
     }
 }

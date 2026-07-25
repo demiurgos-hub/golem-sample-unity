@@ -10,7 +10,7 @@ import (
 
 // SchemaFingerprint is the SHA-256 of all entity schemas at bake time.
 // Pass it to snapshot.Save / snapshot.Load to detect schema mismatches.
-const SchemaFingerprint = "78a374a037a8ddce3963d70e493c2bc42b83ed5bbf59fb1425a21c97c80213ad"
+const SchemaFingerprint = "54edf64ce795fe3414d86e1f02e8a2c0d4eb28226cc171312c0f29a331ce9ac9"
 
 // Runtime wires the generated go-server integration to a golem.Server.
 type Runtime struct {
@@ -43,8 +43,16 @@ func (r *Runtime) LoadSnapshot(path string) error {
 }
 
 var (
-	restorePlayerWrapper func(*SyncedPlayer) golem.Entity
+	restoreMonsterWrapper func(*SyncedMonster) golem.Entity
+	restorePlayerWrapper  func(*SyncedPlayer) golem.Entity
 )
+
+// RegisterMonsterWrapper registers a restore-time wrapper for Monster entities.
+// When set, RestoreEntity returns fn(e) instead of the bare *SyncedMonster.
+// Pass nil to clear the wrapper and restore the default behavior.
+func RegisterMonsterWrapper(fn func(*SyncedMonster) golem.Entity) {
+	restoreMonsterWrapper = fn
+}
 
 // RegisterPlayerWrapper registers a restore-time wrapper for Player entities.
 // When set, RestoreEntity returns fn(e) instead of the bare *SyncedPlayer.
@@ -70,6 +78,13 @@ func RestoreEntity(rec snapshot.Record) (golem.Entity, error) {
 		return nil, fmt.Errorf("snapshot: decoding entity %d (%s): %w", rec.EntityID, rec.TypeName, err)
 	}
 	switch p := u.Payload.(type) {
+	case *EntityUpdate_MonsterState:
+		e := &SyncedMonster{}
+		e.ApplyState(p.MonsterState)
+		if restoreMonsterWrapper != nil {
+			return restoreMonsterWrapper(e), nil
+		}
+		return e, nil
 	case *EntityUpdate_PlayerState:
 		e := &SyncedPlayer{}
 		e.ApplyState(p.PlayerState)

@@ -29,7 +29,7 @@ func main() {
 	playerBySession := make(map[int64]int64)
 
 	srv.OnConnect(func(sess *golem.Session) {
-		player := synced.NewSyncedPlayer(0, 0)
+		player := synced.NewSyncedPlayer(0, 0, 0)
 		if err := srv.CreateEntity(player, sess.ID); err != nil {
 			log.Printf("create player for session %d: %v", sess.ID, err)
 			return

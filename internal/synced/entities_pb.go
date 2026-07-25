@@ -7,11 +7,135 @@ import (
 	"github.com/demiurgos-hub/golem-engine/golem/pb"
 )
 
+type MonsterState struct {
+	EntityId      int64
+	PosX          float32
+	PosY          float32
+	Revision      uint64
+	MonsterTypeId uint32
+	Health        int32
+}
+
+// Marshal encodes the state to protobuf wire format.
+func (m *MonsterState) Marshal() []byte {
+	w := &pb.Writer{}
+	if m.EntityId != 0 {
+		w.Tag(1, 0).Int64(m.EntityId)
+	}
+	if m.PosX != 0 {
+		w.Tag(2, 5).Float32(m.PosX)
+	}
+	if m.PosY != 0 {
+		w.Tag(3, 5).Float32(m.PosY)
+	}
+	if m.Revision != 0 {
+		w.Tag(1000, 0).Uint64(m.Revision)
+	}
+	if m.MonsterTypeId != 0 {
+		w.Tag(4, 0).Uint32(m.MonsterTypeId)
+	}
+	if m.Health != 0 {
+		w.Tag(5, 0).Int32(m.Health)
+	}
+	return w.Finish()
+}
+
+// Unmarshal decodes the state from protobuf wire format.
+func (m *MonsterState) Unmarshal(data []byte) (retErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			retErr = fmt.Errorf("pb: decode MonsterState: %v", r)
+		}
+	}()
+	rd := pb.NewReader(data)
+	for !rd.Done() {
+		field, wire := rd.Tag()
+		switch field {
+		case 1:
+			m.EntityId = rd.Int64()
+		case 2:
+			m.PosX = rd.Float32()
+		case 3:
+			m.PosY = rd.Float32()
+		case 1000:
+			m.Revision = rd.Uint64()
+		case 4:
+			m.MonsterTypeId = rd.Uint32()
+		case 5:
+			m.Health = rd.Int32()
+		default:
+			rd.Skip(wire)
+		}
+	}
+	return nil
+}
+
+type MonsterDelta struct {
+	EntityId int64
+	PosX     *float32
+	PosY     *float32
+	Revision uint64
+	Health   *int32
+}
+
+// Marshal encodes the delta to protobuf wire format.
+func (m *MonsterDelta) Marshal() []byte {
+	w := &pb.Writer{}
+	if m.EntityId != 0 {
+		w.Tag(1, 0).Int64(m.EntityId)
+	}
+	if m.PosX != nil {
+		w.Tag(2, 5).Float32(*m.PosX)
+	}
+	if m.PosY != nil {
+		w.Tag(3, 5).Float32(*m.PosY)
+	}
+	if m.Revision != 0 {
+		w.Tag(1000, 0).Uint64(m.Revision)
+	}
+	if m.Health != nil {
+		w.Tag(5, 0).Int32(*m.Health)
+	}
+	return w.Finish()
+}
+
+// Unmarshal decodes the delta from protobuf wire format.
+func (m *MonsterDelta) Unmarshal(data []byte) (retErr error) {
+	defer func() {
+		if r := recover(); r != nil {
+			retErr = fmt.Errorf("pb: decode MonsterDelta: %v", r)
+		}
+	}()
+	rd := pb.NewReader(data)
+	for !rd.Done() {
+		field, wire := rd.Tag()
+		switch field {
+		case 1:
+			m.EntityId = rd.Int64()
+		case 2:
+			v := rd.Float32()
+			m.PosX = &v
+		case 3:
+			v := rd.Float32()
+			m.PosY = &v
+		case 1000:
+			m.Revision = rd.Uint64()
+		case 5:
+			v := rd.Int32()
+			m.Health = &v
+		default:
+			rd.Skip(wire)
+		}
+	}
+	return nil
+}
+
 type PlayerState struct {
 	EntityId int64
 	PosX     float32
 	PosY     float32
 	Revision uint64
+	Health   int32
 }
 
 // Marshal encodes the state to protobuf wire format.
@@ -28,6 +152,9 @@ func (m *PlayerState) Marshal() []byte {
 	}
 	if m.Revision != 0 {
 		w.Tag(1000, 0).Uint64(m.Revision)
+	}
+	if m.Health != 0 {
+		w.Tag(4, 0).Int32(m.Health)
 	}
 	return w.Finish()
 }
@@ -51,6 +178,8 @@ func (m *PlayerState) Unmarshal(data []byte) (retErr error) {
 			m.PosY = rd.Float32()
 		case 1000:
 			m.Revision = rd.Uint64()
+		case 4:
+			m.Health = rd.Int32()
 		default:
 			rd.Skip(wire)
 		}
@@ -63,6 +192,7 @@ type PlayerDelta struct {
 	PosX     *float32
 	PosY     *float32
 	Revision uint64
+	Health   *int32
 }
 
 // Marshal encodes the delta to protobuf wire format.
@@ -79,6 +209,9 @@ func (m *PlayerDelta) Marshal() []byte {
 	}
 	if m.Revision != 0 {
 		w.Tag(1000, 0).Uint64(m.Revision)
+	}
+	if m.Health != nil {
+		w.Tag(4, 0).Int32(*m.Health)
 	}
 	return w.Finish()
 }
@@ -104,6 +237,9 @@ func (m *PlayerDelta) Unmarshal(data []byte) (retErr error) {
 			m.PosY = &v
 		case 1000:
 			m.Revision = rd.Uint64()
+		case 4:
+			v := rd.Int32()
+			m.Health = &v
 		default:
 			rd.Skip(wire)
 		}
@@ -155,6 +291,16 @@ type isEntityUpdatePayload interface{ isEntityUpdatePayload() }
 // EntityUpdate wraps a single State, Delta, or EntityRemoved payload.
 type EntityUpdate struct{ Payload isEntityUpdatePayload }
 
+// EntityUpdate_MonsterState is the oneof wrapper for MonsterState.
+type EntityUpdate_MonsterState struct{ MonsterState *MonsterState }
+
+func (*EntityUpdate_MonsterState) isEntityUpdatePayload() {}
+
+// EntityUpdate_MonsterDelta is the oneof wrapper for MonsterDelta.
+type EntityUpdate_MonsterDelta struct{ MonsterDelta *MonsterDelta }
+
+func (*EntityUpdate_MonsterDelta) isEntityUpdatePayload() {}
+
 // EntityUpdate_PlayerState is the oneof wrapper for PlayerState.
 type EntityUpdate_PlayerState struct{ PlayerState *PlayerState }
 
@@ -174,12 +320,16 @@ func (*EntityUpdate_EntityRemoved) isEntityUpdatePayload() {}
 func (m *EntityUpdate) Marshal() []byte {
 	w := &pb.Writer{}
 	switch p := m.Payload.(type) {
+	case *EntityUpdate_MonsterState:
+		w.Tag(1, 2).Bytes(p.MonsterState.Marshal())
+	case *EntityUpdate_MonsterDelta:
+		w.Tag(2, 2).Bytes(p.MonsterDelta.Marshal())
 	case *EntityUpdate_PlayerState:
-		w.Tag(1, 2).Bytes(p.PlayerState.Marshal())
+		w.Tag(3, 2).Bytes(p.PlayerState.Marshal())
 	case *EntityUpdate_PlayerDelta:
-		w.Tag(2, 2).Bytes(p.PlayerDelta.Marshal())
+		w.Tag(4, 2).Bytes(p.PlayerDelta.Marshal())
 	case *EntityUpdate_EntityRemoved:
-		w.Tag(3, 2).Bytes(p.EntityRemoved.Marshal())
+		w.Tag(5, 2).Bytes(p.EntityRemoved.Marshal())
 	}
 	return w.Finish()
 }
@@ -196,18 +346,30 @@ func (m *EntityUpdate) Unmarshal(data []byte) (retErr error) {
 		field, wire := rd.Tag()
 		switch field {
 		case 1:
+			sub := &MonsterState{}
+			if err := sub.Unmarshal(rd.Bytes()); err != nil {
+				return err
+			}
+			m.Payload = &EntityUpdate_MonsterState{MonsterState: sub}
+		case 2:
+			sub := &MonsterDelta{}
+			if err := sub.Unmarshal(rd.Bytes()); err != nil {
+				return err
+			}
+			m.Payload = &EntityUpdate_MonsterDelta{MonsterDelta: sub}
+		case 3:
 			sub := &PlayerState{}
 			if err := sub.Unmarshal(rd.Bytes()); err != nil {
 				return err
 			}
 			m.Payload = &EntityUpdate_PlayerState{PlayerState: sub}
-		case 2:
+		case 4:
 			sub := &PlayerDelta{}
 			if err := sub.Unmarshal(rd.Bytes()); err != nil {
 				return err
 			}
 			m.Payload = &EntityUpdate_PlayerDelta{PlayerDelta: sub}
-		case 3:
+		case 5:
 			sub := &EntityRemoved{}
 			if err := sub.Unmarshal(rd.Bytes()); err != nil {
 				return err

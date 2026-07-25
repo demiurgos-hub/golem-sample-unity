@@ -13,8 +13,9 @@ var _ golem.Entity = (*SyncedPlayer)(nil)
 // --- Player ---
 
 const (
-	playerFieldPosX uint64 = 1 << 0
-	playerFieldPosY uint64 = 1 << 1
+	playerFieldPosX   uint64 = 1 << 0
+	playerFieldPosY   uint64 = 1 << 1
+	playerFieldHealth uint64 = 1 << 2
 )
 
 type SyncedPlayer struct {
@@ -22,12 +23,13 @@ type SyncedPlayer struct {
 	entityID      int64
 	posX          float32
 	posY          float32
+	health        int32
 	dirty         uint64
 	lastFlushMask uint64
 	revision      uint64
 }
 
-func NewSyncedPlayer(posX float32, posY float32, entityID ...int64) *SyncedPlayer {
+func NewSyncedPlayer(posX float32, posY float32, health int32, entityID ...int64) *SyncedPlayer {
 	id := int64(0)
 	if len(entityID) > 0 {
 		id = entityID[0]
@@ -36,6 +38,7 @@ func NewSyncedPlayer(posX float32, posY float32, entityID ...int64) *SyncedPlaye
 		entityID: id,
 		posX:     posX,
 		posY:     posY,
+		health:   health,
 	}
 }
 
@@ -96,6 +99,22 @@ func (s *SyncedPlayer) SetPosition(x, y float32) {
 // CommandRouter to extract the synced type from either a bare or wrapped entity.
 func (s *SyncedPlayer) GetSyncedPlayer() *SyncedPlayer { return s }
 
+func (s *SyncedPlayer) Health() int32 {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.health
+}
+
+func (s *SyncedPlayer) SetHealth(v int32) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.health != v {
+		s.health = v
+		s.dirty |= playerFieldHealth
+		s.revision++
+	}
+}
+
 // LastFlushMask returns the field mask captured by the most recent FlushDelta.
 func (s *SyncedPlayer) LastFlushMask() uint64 {
 	s.mu.Lock()
@@ -114,6 +133,9 @@ func (s *SyncedPlayer) deltaFromMaskLocked(mask uint64) *PlayerDelta {
 	}
 	if mask&playerFieldPosY != 0 {
 		d.PosY = pb.Float32(s.posY)
+	}
+	if mask&playerFieldHealth != 0 {
+		d.Health = pb.Int32(s.health)
 	}
 	return d
 }
@@ -137,6 +159,7 @@ func (s *SyncedPlayer) FullState() *PlayerState {
 		PosX:     s.posX,
 		PosY:     s.posY,
 		Revision: s.revision,
+		Health:   s.health,
 	}
 }
 
@@ -202,6 +225,7 @@ func (s *SyncedPlayer) ApplyState(st *PlayerState) {
 	s.posX = st.PosX
 	s.posY = st.PosY
 	s.revision = st.Revision
+	s.health = st.Health
 	s.dirty = 0
 	s.lastFlushMask = 0
 }

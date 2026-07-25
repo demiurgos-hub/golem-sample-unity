@@ -20,6 +20,7 @@ namespace GolemSample.GolemGenerated
         private Action<object> _onUpdate;
         private Action<long> _onRemove;
 
+        private Func<long, SyncedMonster> _monsterFactory = id => new SyncedMonster(id);
         private Func<long, SyncedPlayer> _playerFactory = id => new SyncedPlayer(id);
 
         public object Get(long entityId)
@@ -37,6 +38,7 @@ namespace GolemSample.GolemGenerated
         public void OnUpdate(Action<object> fn) { _onUpdate = fn; }
         public void OnRemove(Action<long> fn) { _onRemove = fn; }
 
+        public void RegisterMonster(Func<long, SyncedMonster> factory) { _monsterFactory = factory; }
         public void RegisterPlayer(Func<long, SyncedPlayer> factory) { _playerFactory = factory; }
 
         public void ApplyUpdate(object update)
@@ -47,6 +49,16 @@ namespace GolemSample.GolemGenerated
         public void ApplyUpdate(EntityUpdate update)
         {
 
+            if (update.MonsterState != null)
+            {
+                ApplyStateMonster(update.MonsterState);
+                return;
+            }
+            if (update.MonsterDelta != null)
+            {
+                ApplyDeltaMonster(update.MonsterDelta);
+                return;
+            }
             if (update.PlayerState != null)
             {
                 ApplyStatePlayer(update.PlayerState);
@@ -81,6 +93,14 @@ namespace GolemSample.GolemGenerated
             if (!_entities.TryGetValue(id, out var existing)) return;
             var body = reader.Remaining();
 
+            if (existing is SyncedMonster)
+            {
+                var delta = MonsterDelta.Decode(body);
+                delta.EntityId = id;
+                delta.Revision = revision;
+                ApplyDeltaMonster(delta);
+                return;
+            }
             if (existing is SyncedPlayer)
             {
                 var delta = PlayerDelta.Decode(body);
@@ -96,6 +116,39 @@ namespace GolemSample.GolemGenerated
             return _lastRevisions.TryGetValue(entityId, out var last) && revision < last;
         }
 
+        private void ApplyStateMonster(MonsterState state)
+        {
+            var id = state.EntityId;
+            var revision = state.Revision;
+            if (IsStale(id, revision)) return;
+            var isNew = !_entities.TryGetValue(id, out var existing);
+            var entity = isNew ? _monsterFactory(id) : (SyncedMonster)existing;
+            if (isNew) _entities[id] = entity;
+            entity.ApplyState(state);
+            _lastRevisions[id] = revision;
+            if (isNew)
+            {
+                if (entity is IEntityLifecycle lifecycle) lifecycle.OnSpawn();
+                _onSpawn?.Invoke(entity);
+            }
+            else
+            {
+                _onUpdate?.Invoke(entity);
+            }
+        }
+
+        private void ApplyDeltaMonster(MonsterDelta delta)
+        {
+            var id = delta.EntityId;
+            var revision = delta.Revision;
+            if (IsStale(id, revision)) return;
+            if (_entities.TryGetValue(id, out var existing) && existing is SyncedMonster entity)
+            {
+                entity.ApplyDelta(delta);
+                _lastRevisions[id] = revision;
+                _onUpdate?.Invoke(entity);
+            }
+        }
         private void ApplyStatePlayer(PlayerState state)
         {
             var id = state.EntityId;
