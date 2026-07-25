@@ -4,12 +4,16 @@ using UnityEngine;
 namespace GolemSample.Unity
 {
     /// <summary>
-    /// Resolves a monster's catalog Visual through MonsterList and instances it under the entity.
+    /// Resolves a monster's catalog Visual through MonsterList, instances it under the entity,
+    /// and feeds EntityInterpolator from replicated position updates.
     /// </summary>
     public sealed class MonsterVisual : MonsterView
     {
         [SerializeField]
         private MonsterList monsterList;
+
+        [SerializeField]
+        private EntityInterpolator interpolator;
 
         private GameObject visualInstance;
         private SpriteRenderer rootRenderer;
@@ -17,11 +21,51 @@ namespace GolemSample.Unity
         protected override void OnSpawned(SyncedMonster entity)
         {
             ApplyVisual(entity.MonsterTypeId);
+            PushSample(entity);
+        }
+
+        protected override void OnUpdated(SyncedMonster entity)
+        {
+            PushSample(entity);
         }
 
         protected override void OnDespawned(SyncedMonster entity)
         {
+            ClearInterpolator();
             ClearVisual();
+        }
+
+        private void OnDestroy()
+        {
+            ClearInterpolator();
+            ClearVisual();
+        }
+
+        private void PushSample(SyncedMonster entity)
+        {
+            if (entity == null)
+            {
+                return;
+            }
+
+            EnsureInterpolator();
+            interpolator.PushSample(entity.PosX, entity.PosY);
+        }
+
+        private void ClearInterpolator()
+        {
+            if (interpolator != null)
+            {
+                interpolator.Clear();
+            }
+        }
+
+        private void EnsureInterpolator()
+        {
+            if (interpolator == null)
+            {
+                interpolator = GetComponent<EntityInterpolator>();
+            }
         }
 
         private void ApplyVisual(uint monsterTypeId)

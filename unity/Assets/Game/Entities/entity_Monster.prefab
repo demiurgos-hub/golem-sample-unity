@@ -103,11 +103,12 @@ MonoBehaviour:
   m_GameObject: {fileID: 1500284169343805932}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 979cab945e1894844a62a4bd3e4c656a, type: 3}
+  m_Script: {fileID: 11500000, guid: fa6d67c160233964881839ac7b1d799a, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: GolemEngine.Unity::GolemEngine.Unity.GolemTransformBinding
-  smooth: 1
-  lerpSpeed: 12
+  m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.EntityInterpolator
+  renderDelay: 0.1
+  snapDistance: 2
+  staleAfter: 0.35
 --- !u!114 &5522451612801934008
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -134,5 +135,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6bc39a3ffae84a74ca354b4d2d10e586, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Game.Runtime::GolemSample.Unity.MonsterVisual
-  transformBinding: {fileID: 6601459111828181616}
+  transformBinding: {fileID: 0}
   monsterList: {fileID: 11400000, guid: fd676cee55340334683c6cb6f5c5225a, type: 2}
+  interpolator: {fileID: 6601459111828181616}
