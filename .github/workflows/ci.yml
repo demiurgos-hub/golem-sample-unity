@@ -1,0 +1,112 @@
+# CI for the Golem Unity sample.
+#
+# Go job (push / pull_request / workflow_dispatch):
+#   go.mod replace directives point at a LOCAL sibling checkout of
+#   github.com/demiurgos-hub/golem-engine (../golem-engine). There is no
+#   published module version. This workflow checks that repo out next to the
+#   sample. If the engine is private, set secret GOLEM_ENGINE_TOKEN
+#   (contents:read). Optional repo variable GOLEM_ENGINE_REPO overrides the
+#   default demiurgos-hub/golem-engine.
+#
+# Scribe job (workflow_dispatch + run_scribe only):
+#   Always runs when opted in; exits 1 if no Unity Editor is found (no
+#   detect-and-skip). Needs a licensed Editor and a machine where
+#   unity/Packages/manifest.json `file:` package paths resolve (today those
+#   paths are absolute local Windows paths to golem-engine and
+#   webtransport-csharp UPM artifacts). Stock GitHub-hosted runners will not
+#   satisfy that, so this job is never scheduled on push/PR. Prefer local:
+#     Golem > Scribe > Validate
+#   or the batch-mode entry point documented in the README.
+
+name: CI
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      run_scribe:
+        description: Run Unity Scribe ExportAllAndValidate (licensed Editor + local package paths)
+        type: boolean
+        default: false
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: Go build, vet, test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: golem-sample-unity
+    steps:
+      - name: Checkout sample
+        uses: actions/checkout@v4
+        with:
+          path: golem-sample-unity
+
+      # Sibling layout required by go.mod replace => ../golem-engine
+      - name: Checkout golem-engine sibling
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.GOLEM_ENGINE_REPO || 'demiurgos-hub/golem-engine' }}
+          path: golem-engine
+          token: ${{ secrets.GOLEM_ENGINE_TOKEN || github.token }}
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: golem-sample-unity/go.mod
+          cache-dependency-path: golem-sample-unity/go.sum
+
+      - name: go build
+        run: go build ./...
+
+      - name: go vet
+        run: go vet ./...
+
+      # -race omitted: needs cgo/gcc on the host; not part of the required check.
+      - name: go test
+        run: go test -count=1 ./...
+
+  scribe:
+    name: Scribe ExportAllAndValidate (opt-in)
+    if: github.event_name == 'workflow_dispatch' && inputs.run_scribe
+    # Override with a self-hosted label via repo variable when you have a licensed
+    # Editor and matching package layout, e.g. SCRIBE_RUNS_ON=self-hosted.
+    runs-on: ${{ vars.SCRIBE_RUNS_ON || 'ubuntu-latest' }}
+    steps:
+      - name: Checkout sample
+        uses: actions/checkout@v4
+        with:
+          path: golem-sample-unity
+
+      - name: Run Scribe ExportAllAndValidate
+        working-directory: golem-sample-unity
+        env:
+          UNITY_EDITOR_PATH: ${{ vars.UNITY_EDITOR_PATH }}
+        run: |
+          set -euo pipefail
+          EDITOR_BIN="${UNITY_EDITOR_PATH:-}"
+          if [ -z "$EDITOR_BIN" ]; then
+            if command -v unity-editor >/dev/null 2>&1; then
+              EDITOR_BIN="$(command -v unity-editor)"
+            elif command -v Unity >/dev/null 2>&1; then
+              EDITOR_BIN="$(command -v Unity)"
+            fi
+          fi
+          if [ -z "${EDITOR_BIN}" ] || [ ! -x "${EDITOR_BIN}" ]; then
+            echo "::error::No Unity Editor on this runner (set vars.UNITY_EDITOR_PATH / SCRIBE_RUNS_ON for a self-hosted machine)."
+            echo "unity/Packages/manifest.json also uses absolute local file: UPM paths, so GitHub-hosted runners cannot resolve Golem packages."
+            echo "Run locally instead:"
+            echo "  Golem > Scribe > Validate"
+            echo "  or: Unity -batchmode -projectPath unity -executeMethod GolemEngine.Unity.Editor.GolemScribeCI.ExportAllAndValidate -logFile -"
+            exit 1
+          fi
+          "$EDITOR_BIN" -batchmode -nographics \
+            -projectPath unity \
+            -executeMethod GolemEngine.Unity.Editor.GolemScribeCI.ExportAllAndValidate \
+            -logFile -
