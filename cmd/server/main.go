@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math"
+	"math/rand"
 	"os"
 	"os/signal"
 	"sort"
@@ -26,8 +28,14 @@ func main() {
 		Transport:         golem.TransportWebTransport,
 		StateUpdateLane:   golem.StateUpdateLaneDatagram,
 		DevSelfSignedCert: true,
+		// CellSize > 0 enables the spatial hash and per-session FOI filtering.
+		// 8 units ≈ 2s of player travel at PlayerMoveSpeed; FOI radius 15 keeps
+		// nearby catalog spawns visible while far spawns start outside interest.
+		CellSize: gameplay.InterestCellSize,
 	})
 	intents := gameplay.NewIntentStore()
+	// Seeded RNG keeps wander reproducible across sample runs; only touched from OnTick.
+	monsterAI := gameplay.NewMonsterAI(rand.New(rand.NewSource(1)))
 
 	if err := loadAndSpawnMonsters(srv); err != nil {
 		log.Fatal(err)
@@ -42,10 +50,14 @@ func main() {
 			return
 		}
 		playerBySession[sess.ID] = player.EntityID()
+		// Interest is enabled (CellSize > 0): assign FOI so the client receives
+		// nearby entities on the interest tick. World-data snapshots still go out
+		// on connect via the listener; only the entity snapshot is deferred.
+		srv.AssignFOI(sess.ID, player.EntityID(), gameplay.FOIRadius, gameplay.FOIMargin)
 		if err := rt.Events.SendLocalPlayerAssigned(sess.ID, player.EntityID()); err != nil {
 			log.Printf("send LocalPlayerAssigned to session %d: %v", sess.ID, err)
 		} else {
-			log.Printf("session %d connected, player entity %d spawned, LocalPlayerAssigned sent", sess.ID, player.EntityID())
+			log.Printf("session %d connected, player entity %d spawned, LocalPlayerAssigned sent, FOI assigned", sess.ID, player.EntityID())
 		}
 	})
 
@@ -56,6 +68,7 @@ func main() {
 		}
 		delete(playerBySession, sess.ID)
 		intents.Clear(playerID)
+		srv.RemoveFOI(sess.ID)
 		srv.DeleteEntity(playerID)
 		log.Printf("session %d disconnected, player entity %d removed", sess.ID, playerID)
 	})
@@ -83,16 +96,73 @@ func main() {
 				y+float32(intent.DY*gameplay.PlayerMoveSpeed*dt),
 			)
 		}
+
+		speedByType := monsterSpeeds(s)
+		monsters, players := collectActors(s, speedByType)
+		for _, d := range monsterAI.Step(dt, monsters, players) {
+			ent, ok := s.Get(d.EntityID)
+			if !ok {
+				monsterAI.Forget(d.EntityID)
+				continue
+			}
+			monster, ok := ent.(*synced.SyncedMonster)
+			if !ok {
+				continue
+			}
+			monster.SetPosition(float32(d.X), float32(d.Y))
+		}
 	})
 
 	rt.Commands.BindAllHandlers(func(sess *golem.Session, err error) {
 		log.Printf("command error from session %d: %v", sess.ID, err)
 	})
 
-	log.Print("golem sample server listening on https://localhost:8080/wt")
+	log.Printf(
+		"golem sample server listening on https://localhost:8080/wt (CellSize=%.0f FOIRadius=%.0f)",
+		gameplay.InterestCellSize, gameplay.FOIRadius,
+	)
 	if err := srv.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
 		log.Fatal(err)
 	}
+}
+
+func monsterSpeeds(s *golem.Server) map[uint32]float64 {
+	out := make(map[uint32]float64)
+	raw := s.World.Get("MonsterType")
+	if raw == nil {
+		return out
+	}
+	catalog, ok := raw.(*synced.MonsterTypeData)
+	if !ok || catalog == nil {
+		return out
+	}
+	for id, row := range catalog.Items {
+		out[uint32(id)] = float64(row.MoveSpeed)
+	}
+	return out
+}
+
+func collectActors(s *golem.Server, speedByType map[uint32]float64) ([]gameplay.MonsterView, []gameplay.PlayerView) {
+	var monsters []gameplay.MonsterView
+	var players []gameplay.PlayerView
+	for _, ent := range s.All() {
+		switch e := ent.(type) {
+		case *synced.SyncedMonster:
+			x, y := e.Position()
+			monsters = append(monsters, gameplay.MonsterView{
+				EntityID: e.EntityID(),
+				Pos:      gameplay.Vec2{X: float64(x), Y: float64(y)},
+				TypeID:   e.MonsterTypeId(),
+				Speed:    speedByType[e.MonsterTypeId()],
+			})
+		case *synced.SyncedPlayer:
+			x, y := e.Position()
+			players = append(players, gameplay.PlayerView{
+				Pos: gameplay.Vec2{X: float64(x), Y: float64(y)},
+			})
+		}
+	}
+	return monsters, players
 }
 
 func loadAndSpawnMonsters(srv *golem.Server) error {
@@ -115,13 +185,11 @@ func loadAndSpawnMonsters(srv *golem.Server) error {
 	}
 	sort.Slice(ids, func(i, j int) bool { return ids[i] < ids[j] })
 
-	// Fixed, spread-out spawn positions (index-aligned with sorted catalog ids).
-	spawnPositions := [][2]float32{
-		{5, 0},
-		{-5, 2},
-	}
-
-	for i, id := range ids {
+	for _, sp := range gameplay.SampleMonsterSpawns {
+		if sp.TypeIndex < 0 || sp.TypeIndex >= len(ids) {
+			return fmt.Errorf("spawn TypeIndex %d out of range for %d catalog types", sp.TypeIndex, len(ids))
+		}
+		id := ids[sp.TypeIndex]
 		row, ok := catalog.Items[id]
 		if !ok {
 			return fmt.Errorf("MonsterType catalog missing row id %d", id)
@@ -130,18 +198,15 @@ func loadAndSpawnMonsters(srv *golem.Server) error {
 			return fmt.Errorf("MonsterType catalog row has invalid id %d (name=%q); id must be > 0", row.Id, row.Name)
 		}
 
-		pos := [2]float32{float32(8 + i*4), float32(i) * 2}
-		if i < len(spawnPositions) {
-			pos = spawnPositions[i]
-		}
-
-		monster := synced.NewSyncedMonster(pos[0], pos[1], uint32(row.Id), row.Health)
+		monster := synced.NewSyncedMonster(float32(sp.X), float32(sp.Y), uint32(row.Id), row.Health)
 		if err := srv.CreateEntity(monster); err != nil {
 			return fmt.Errorf("spawn monster type %d (%s): %w", row.Id, row.Name, err)
 		}
+		dist := math.Hypot(sp.X, sp.Y)
+		inFOI := !gameplay.OutsideFOI(dist, gameplay.FOIRadius)
 		log.Printf(
-			"spawned monster entity %d typeId=%d name=%q health=%d (from catalog) at (%.1f, %.1f)",
-			monster.EntityID(), row.Id, row.Name, row.Health, pos[0], pos[1],
+			"spawned monster entity %d typeId=%d name=%q health=%d moveSpeed=%.2f at (%.1f, %.1f) dist=%.1f foi=%v",
+			monster.EntityID(), row.Id, row.Name, row.Health, row.MoveSpeed, sp.X, sp.Y, dist, inFOI,
 		)
 	}
 
