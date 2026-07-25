@@ -22,6 +22,7 @@ func main() {
 		TickRate:          20,
 		Addr:              ":8080",
 		Transport:         golem.TransportWebTransport,
+		StateUpdateLane:   golem.StateUpdateLaneDatagram,
 		DevSelfSignedCert: true,
 	})
 
