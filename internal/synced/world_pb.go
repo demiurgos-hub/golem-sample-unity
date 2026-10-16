@@ -282,20 +282,18 @@ func LoadMonsterTypeData(path string) (*MonsterTypeData, error) {
 
 type isWorldUpdatePayload interface{ isWorldUpdatePayload() }
 
-// WorldUpdate wraps a single world data payload.
+// WorldUpdate wraps one protocol payload.
 type WorldUpdate struct{ Payload isWorldUpdatePayload }
 
-// WorldUpdate_DecorTypeData is the oneof wrapper for DecorTypeData.
 type WorldUpdate_DecorTypeData struct{ DecorTypeData *DecorTypeData }
 
 func (*WorldUpdate_DecorTypeData) isWorldUpdatePayload() {}
 
-// WorldUpdate_MonsterTypeData is the oneof wrapper for MonsterTypeData.
 type WorldUpdate_MonsterTypeData struct{ MonsterTypeData *MonsterTypeData }
 
 func (*WorldUpdate_MonsterTypeData) isWorldUpdatePayload() {}
 
-// Marshal encodes the world update to protobuf wire format.
+// Marshal encodes the envelope to protobuf wire format.
 func (m *WorldUpdate) Marshal() []byte {
 	w := &pb.Writer{}
 	switch p := m.Payload.(type) {
@@ -307,7 +305,7 @@ func (m *WorldUpdate) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes the world update from protobuf wire format.
+// Unmarshal decodes the envelope from protobuf wire format.
 func (m *WorldUpdate) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {

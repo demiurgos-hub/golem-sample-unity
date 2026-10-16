@@ -1,10 +1,10 @@
 # CI for the Golem Unity sample.
 #
 # Go job (push / pull_request / workflow_dispatch):
-#   go.mod replace directives point at a LOCAL sibling checkout of
-#   github.com/demiurgos-hub/golem-engine (../golem-engine). There is no
-#   published module version. This workflow checks that repo out next to the
-#   sample. If the engine is private, set secret GOLEM_ENGINE_TOKEN
+#   go.mod replace directives point at a LOCAL checkout of
+#   github.com/demiurgos-hub/golem-engine (../../golem-engine). This workflow
+#   places the sample under golem-samples/ to match that layout.
+#   If the engine is private, set secret GOLEM_ENGINE_TOKEN
 #   (contents:read). Optional repo variable GOLEM_ENGINE_REPO overrides the
 #   default demiurgos-hub/golem-engine.
 #
@@ -41,14 +41,14 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: golem-sample-unity
+        working-directory: golem-samples/golem-sample-unity
     steps:
       - name: Checkout sample
         uses: actions/checkout@v4
         with:
-          path: golem-sample-unity
+          path: golem-samples/golem-sample-unity
 
-      # Sibling layout required by go.mod replace => ../golem-engine
+      # Local layout required by go.mod replace => ../../golem-engine
       - name: Checkout golem-engine sibling
         uses: actions/checkout@v4
         with:
@@ -59,8 +59,8 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: golem-sample-unity/go.mod
-          cache-dependency-path: golem-sample-unity/go.sum
+          go-version-file: golem-samples/golem-sample-unity/go.mod
+          cache-dependency-path: golem-samples/golem-sample-unity/go.sum
 
       - name: go build
         run: go build ./...

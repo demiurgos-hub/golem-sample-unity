@@ -2,7 +2,8 @@
   "name": "Golem.Generated",
   "rootNamespace": "GolemSample.GolemGenerated",
   "references": [
-    "GolemEngine.Unity"
+    "GolemEngine.Unity",
+    "GolemEngine.Unity.WebTransport"
   ],
   "includePlatforms": [],
   "excludePlatforms": [],

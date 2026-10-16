@@ -126,7 +126,7 @@ type MonsterState struct {
 	Health        int32
 }
 
-// Marshal encodes the state to protobuf wire format.
+// Marshal encodes the message to protobuf wire format.
 func (m *MonsterState) Marshal() []byte {
 	w := &pb.Writer{}
 	if m.EntityId != 0 {
@@ -150,7 +150,7 @@ func (m *MonsterState) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes the state from protobuf wire format.
+// Unmarshal decodes the message from protobuf wire format.
 func (m *MonsterState) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -188,7 +188,7 @@ type MonsterDelta struct {
 	Health   *int32
 }
 
-// Marshal encodes the delta to protobuf wire format.
+// Marshal encodes the message to protobuf wire format.
 func (m *MonsterDelta) Marshal() []byte {
 	w := &pb.Writer{}
 	if m.EntityId != 0 {
@@ -209,7 +209,7 @@ func (m *MonsterDelta) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes the delta from protobuf wire format.
+// Unmarshal decodes the message from protobuf wire format.
 func (m *MonsterDelta) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -248,7 +248,7 @@ type PlayerState struct {
 	Health   int32
 }
 
-// Marshal encodes the state to protobuf wire format.
+// Marshal encodes the message to protobuf wire format.
 func (m *PlayerState) Marshal() []byte {
 	w := &pb.Writer{}
 	if m.EntityId != 0 {
@@ -269,7 +269,7 @@ func (m *PlayerState) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes the state from protobuf wire format.
+// Unmarshal decodes the message from protobuf wire format.
 func (m *PlayerState) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -305,7 +305,7 @@ type PlayerDelta struct {
 	Health   *int32
 }
 
-// Marshal encodes the delta to protobuf wire format.
+// Marshal encodes the message to protobuf wire format.
 func (m *PlayerDelta) Marshal() []byte {
 	w := &pb.Writer{}
 	if m.EntityId != 0 {
@@ -326,7 +326,7 @@ func (m *PlayerDelta) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes the delta from protobuf wire format.
+// Unmarshal decodes the message from protobuf wire format.
 func (m *PlayerDelta) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -398,35 +398,30 @@ func (m *EntityRemoved) Unmarshal(data []byte) (retErr error) {
 
 type isEntityUpdatePayload interface{ isEntityUpdatePayload() }
 
-// EntityUpdate wraps a single State, Delta, or EntityRemoved payload.
+// EntityUpdate wraps one protocol payload.
 type EntityUpdate struct{ Payload isEntityUpdatePayload }
 
-// EntityUpdate_MonsterState is the oneof wrapper for MonsterState.
 type EntityUpdate_MonsterState struct{ MonsterState *MonsterState }
 
 func (*EntityUpdate_MonsterState) isEntityUpdatePayload() {}
 
-// EntityUpdate_MonsterDelta is the oneof wrapper for MonsterDelta.
 type EntityUpdate_MonsterDelta struct{ MonsterDelta *MonsterDelta }
 
 func (*EntityUpdate_MonsterDelta) isEntityUpdatePayload() {}
 
-// EntityUpdate_PlayerState is the oneof wrapper for PlayerState.
 type EntityUpdate_PlayerState struct{ PlayerState *PlayerState }
 
 func (*EntityUpdate_PlayerState) isEntityUpdatePayload() {}
 
-// EntityUpdate_PlayerDelta is the oneof wrapper for PlayerDelta.
 type EntityUpdate_PlayerDelta struct{ PlayerDelta *PlayerDelta }
 
 func (*EntityUpdate_PlayerDelta) isEntityUpdatePayload() {}
 
-// EntityUpdate_EntityRemoved is the oneof wrapper for EntityRemoved.
 type EntityUpdate_EntityRemoved struct{ EntityRemoved *EntityRemoved }
 
 func (*EntityUpdate_EntityRemoved) isEntityUpdatePayload() {}
 
-// Marshal encodes the update to protobuf wire format.
+// Marshal encodes the envelope to protobuf wire format.
 func (m *EntityUpdate) Marshal() []byte {
 	w := &pb.Writer{}
 	switch p := m.Payload.(type) {
@@ -444,7 +439,7 @@ func (m *EntityUpdate) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes the update from protobuf wire format.
+// Unmarshal decodes the envelope from protobuf wire format.
 func (m *EntityUpdate) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -498,7 +493,7 @@ type MoveCommand struct {
 	Dy       float32
 }
 
-// Marshal encodes the command to protobuf wire format.
+// Marshal encodes the payload to protobuf wire format.
 func (m *MoveCommand) Marshal() []byte {
 	w := &pb.Writer{}
 	if m.EntityId != 0 {
@@ -513,7 +508,7 @@ func (m *MoveCommand) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes the command from protobuf wire format.
+// Unmarshal decodes the payload from protobuf wire format.
 func (m *MoveCommand) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -539,15 +534,14 @@ func (m *MoveCommand) Unmarshal(data []byte) (retErr error) {
 
 type isClientMessagePayload interface{ isClientMessagePayload() }
 
-// ClientMessage wraps a single command payload sent by the client.
+// ClientMessage wraps one protocol payload.
 type ClientMessage struct{ Payload isClientMessagePayload }
 
-// ClientMessage_MoveCommand is the oneof wrapper for MoveCommand.
 type ClientMessage_MoveCommand struct{ MoveCommand *MoveCommand }
 
 func (*ClientMessage_MoveCommand) isClientMessagePayload() {}
 
-// Marshal encodes the client message to protobuf wire format.
+// Marshal encodes the envelope to protobuf wire format.
 func (m *ClientMessage) Marshal() []byte {
 	w := &pb.Writer{}
 	switch p := m.Payload.(type) {
@@ -557,7 +551,7 @@ func (m *ClientMessage) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes a client message from protobuf wire format.
+// Unmarshal decodes the envelope from protobuf wire format.
 func (m *ClientMessage) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {

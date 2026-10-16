@@ -85,7 +85,7 @@ namespace GolemSample.Unity
                 // stop is not delayed by the last non-zero tick.
                 if (hasLastSent && lastSent.sqrMagnitude > InputDeadZoneSqr)
                 {
-                    ClientFactory.SendMoveReliableUnordered(client, entityId, 0f, 0f);
+                    ClientFactory.SendMove(client, entityId, 0f, 0f);
                     lastSent = Vector2.zero;
                     hasLastSent = true;
                     nextSendTime = Time.time + sendInterval;
@@ -104,7 +104,7 @@ namespace GolemSample.Unity
                 return;
             }
 
-            ClientFactory.SendMoveReliableUnordered(client, entityId, move.x, move.y);
+            ClientFactory.SendMove(client, entityId, move.x, move.y);
             lastSent = move;
             hasLastSent = true;
             nextSendTime = Time.time + sendInterval;

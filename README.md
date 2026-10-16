@@ -2,16 +2,18 @@
 
 Server-authoritative Golem sample: a Go WebTransport server and a Unity 6 client. Entity schemas and catalogs are authored in Unity via Scribe; monsters are data-driven; movement and monster AI run on the server tick; scene-placed decor is exported to SQLite and streamed as collision footprints (server) and visuals (client).
 
+**Open the `unity/` subfolder in Unity Hub.** The repository root is the Go server workspace; opening it in Unity creates an empty project without the sample scene or Golem menu. The client scene is `unity/Assets/Scenes/SampleScene.unity`.
+
 ## Prerequisites
 
 | Piece | Notes |
 | --- | --- |
 | **Unity 6** | Project version `6000.3.13f1` (`unity/ProjectSettings/ProjectVersion.txt`). |
-| **Sibling `golem-engine`** | Checkout at `../golem-engine` next to this repo. Go `replace` directives in `go.mod` point there. Unity consumes the built UPM at `file:…/golem-engine/artifacts/upm/io.demiurgos.golemengine` (absolute path in `unity/Packages/manifest.json`). |
-| **Sibling `webtransport-csharp`** | Same pattern for `io.demiurgos.webtransport` in the Unity manifest. |
+| **Local `golem-engine`** | Checkout at `../../golem-engine` (the sample lives under `golem-samples/golem-sample-unity`). Go `replace` directives in `go.mod` point there. Unity consumes the built UPM at `file:…/golem-engine/artifacts/upm/io.demiurgos.golemengine` (absolute path in `unity/Packages/manifest.json`). |
+| **Local `webtransport-csharp`** | Checkout alongside `golem-engine`; the Unity manifest points to its built `io.demiurgos.webtransport` package. |
 | **Go** | Version from `go.mod` (currently `1.25.4`). |
 
-There is no published Go module version of the engine to pin; local siblings are required.
+This sample uses local engine checkouts. If you use a different directory layout, update the Go replacement paths, Unity package paths, and **Golem > Settings > Project Root** (the folder containing `golem.yaml`).
 
 ## Repository layout
 
@@ -47,7 +49,7 @@ Assembly split:
 
 ## How to run
 
-**Server** (from repo root, with `../golem-engine` present):
+**Server** (from repo root, with `../../golem-engine` present):
 
 ```bash
 go run ./cmd/server

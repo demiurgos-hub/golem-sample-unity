@@ -11,7 +11,7 @@ type LocalPlayerAssignedEvent struct {
 	EntityId int64
 }
 
-// Marshal encodes the event to protobuf wire format.
+// Marshal encodes the payload to protobuf wire format.
 func (m *LocalPlayerAssignedEvent) Marshal() []byte {
 	w := &pb.Writer{}
 	if m.EntityId != 0 {
@@ -20,7 +20,7 @@ func (m *LocalPlayerAssignedEvent) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes the event from protobuf wire format.
+// Unmarshal decodes the payload from protobuf wire format.
 func (m *LocalPlayerAssignedEvent) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -42,15 +42,14 @@ func (m *LocalPlayerAssignedEvent) Unmarshal(data []byte) (retErr error) {
 
 type isServerEventPayload interface{ isServerEventPayload() }
 
-// ServerEvent wraps a single server-to-client event payload.
+// ServerEvent wraps one protocol payload.
 type ServerEvent struct{ Payload isServerEventPayload }
 
-// ServerEvent_LocalPlayerAssignedEvent is the oneof wrapper for LocalPlayerAssignedEvent.
 type ServerEvent_LocalPlayerAssignedEvent struct{ LocalPlayerAssignedEvent *LocalPlayerAssignedEvent }
 
 func (*ServerEvent_LocalPlayerAssignedEvent) isServerEventPayload() {}
 
-// Marshal encodes the server event to protobuf wire format.
+// Marshal encodes the envelope to protobuf wire format.
 func (m *ServerEvent) Marshal() []byte {
 	w := &pb.Writer{}
 	switch p := m.Payload.(type) {
@@ -60,7 +59,7 @@ func (m *ServerEvent) Marshal() []byte {
 	return w.Finish()
 }
 
-// Unmarshal decodes a server event from protobuf wire format.
+// Unmarshal decodes the envelope from protobuf wire format.
 func (m *ServerEvent) Unmarshal(data []byte) (retErr error) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -9,17 +9,31 @@ namespace GolemSample.GolemGenerated
     {
         public static GameClient CreateClient()
         {
-            return CreateClient(() => new GolemWebSocketTransport());
+            return CreateClient(CreateDefaultTransport, GolemTransportCapabilities.BuiltInTransportSupported);
         }
 
+        /// <summary>
+        /// Compatibility factory that ignores <see cref="GolemConnectOptions.Transport"/> selection.
+        /// Prefer <see cref="CreateClient(Func{GolemConnectOptions, IGolemTransport})"/>.
+        /// </summary>
+        [Obsolete("Use Func<GolemConnectOptions, IGolemTransport> so Connect(GolemConnectOptions) can select transports and apply ACK/certificate options.")]
         public static GameClient CreateClient(Func<IGolemTransport> transportFactory)
         {
+            if (transportFactory == null)
+            {
+                throw new ArgumentNullException(nameof(transportFactory));
+            }
+
             var entities = new EntityManager();
 
             var world = new WorldManager();
 
             var events = new EventManager(entities);
+
+#pragma warning disable CS0618
             return new GameClient(
+#pragma warning restore CS0618
+
                 entities,
                 bytes => EntityUpdate.Decode(bytes),
 
@@ -34,17 +48,65 @@ namespace GolemSample.GolemGenerated
             );
         }
 
-
-        public static void SendMoveReliableUnordered(GameClient client, long entityId, float dx, float dy)
+        public static GameClient CreateClient(
+            Func<GolemConnectOptions, IGolemTransport> transportFactory,
+            Func<GolemConnectOptions, bool> transportSupported = null)
         {
-            client.SendReliableUnordered(CommandBuilders.BuildMoveCommand(entityId, dx, dy));
+
+            var entities = new EntityManager();
+
+            var world = new WorldManager();
+
+            var events = new EventManager(entities);
+
+            return new GameClient(
+
+                entities,
+                bytes => EntityUpdate.Decode(bytes),
+
+                command => ClientMessage.Encode((ClientMessage)command),
+                frames => ClientPacket.Encode(frames),
+                transportFactory
+,
+                world,
+                bytes => WorldUpdate.Decode(bytes)
+,
+                events,
+                transportSupported
+            );
         }
 
-        public static void SendMoveReliableOrdered(GameClient client, long entityId, float dx, float dy)
+        private static IGolemTransport CreateDefaultTransport(GolemConnectOptions options)
         {
-            client.SendReliableOrdered(CommandBuilders.BuildMoveCommand(entityId, dx, dy));
+            var transport = string.IsNullOrEmpty(options.Transport)
+                ? GolemConnectOptions.TransportWebSocket
+                : options.Transport;
+            switch (transport)
+            {
+                case GolemConnectOptions.TransportWebSocket:
+                    return new GolemWebSocketTransport();
+                case GolemConnectOptions.TransportWebTransport:
+                    return GolemWebTransportTransport.FromConnectOptions(options);
+                default:
+                    throw new ArgumentException($"golem-unity: unsupported transport \"{options.Transport}\"", nameof(options));
+            }
+        }
+
+
+        public static void SendMove(GameClient client, long entityId, float dx, float dy)
+        {
+            client.Send(CommandBuilders.BuildMoveCommand(entityId, dx, dy));
+        }
+
+        public static void SendMoveOrdered(GameClient client, long entityId, float dx, float dy)
+        {
+            client.SendOrdered(CommandBuilders.BuildMoveCommand(entityId, dx, dy));
         }
 
 
     }
 }
+
+
+
+

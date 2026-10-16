@@ -316,7 +316,7 @@
       "depth": 0,
       "source": "local",
       "dependencies": {
-        "io.demiurgos.webtransport": "0.1.0"
+        "io.demiurgos.webtransport": "0.1.3"
       }
     },
     "io.demiurgos.webtransport": {

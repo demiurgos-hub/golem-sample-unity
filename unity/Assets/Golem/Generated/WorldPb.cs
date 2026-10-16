@@ -37,7 +37,7 @@ namespace GolemSample.GolemGenerated
                         if (payload.Length > 0)
                         {
                             var itemReader = new PbReader(payload);
-                            var key = 0;
+                            int key = 0;
                             var value = new DecorType();
                             while (!itemReader.Done)
                             {
@@ -95,7 +95,7 @@ namespace GolemSample.GolemGenerated
                         if (payload.Length > 0)
                         {
                             var itemReader = new PbReader(payload);
-                            var key = 0;
+                            int key = 0;
                             var value = new MonsterType();
                             while (!itemReader.Done)
                             {

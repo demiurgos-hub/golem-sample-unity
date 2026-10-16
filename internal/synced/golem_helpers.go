@@ -2,14 +2,15 @@
 package synced
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"os"
+	"time"
 
 	"github.com/demiurgos-hub/golem-engine/golem"
 	"github.com/demiurgos-hub/golem-engine/golem/snapshot"
 )
-
-var _ = errors.Is
 
 // SchemaFingerprint is the SHA-256 of all entity schemas at bake time.
 // Pass it to snapshot.Save / snapshot.Load to detect schema mismatches.
@@ -45,6 +46,81 @@ func (r *Runtime) SaveSnapshot(path string) <-chan error {
 // LoadSnapshot restores a schema-checked entity snapshot using the generated restore function.
 func (r *Runtime) LoadSnapshot(path string) error {
 	return r.Server.LoadSnapshot(path, SchemaFingerprint, RestoreEntity)
+}
+
+// LoadSnapshotIfExists loads a schema-checked snapshot from path when the file
+// exists. It returns false, nil when path does not exist; true, nil after a
+// successful load; and false plus a non-nil error for other failures, including
+// snapshot.ErrFingerprintMismatch (detectable with errors.Is).
+func (r *Runtime) LoadSnapshotIfExists(path string) (bool, error) {
+	if err := r.LoadSnapshot(path); err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return false, nil
+		}
+		return false, err
+	}
+	return true, nil
+}
+
+// RunSnapshotAutosave periodically saves entity snapshots to path until ctx is
+// cancelled. It blocks on the caller's goroutine, waits for each asynchronous
+// SaveSnapshot result before starting the next save, returns the first save
+// error, and returns ctx.Err() on cancellation. Cancellation that arrives while
+// a save is in flight waits for that filesystem result: a failed save returns
+// the save error (not ctx.Err()); a successful save then returns ctx.Err().
+// A buffered/ready tick does not start a save when ctx is already cancelled
+// (ctx.Err is checked immediately before invoking save). A cancellation that
+// races after that pre-save check may still allow that already-starting save;
+// in-flight saves are always awaited before return. It does not spawn a
+// background goroutine, log, invoke callbacks, or perform an implicit final
+// save — callers own concurrency and error policy:
+//
+//	go func() {
+//		if err := rt.RunSnapshotAutosave(ctx, "world.snap", time.Minute); err != nil && !errors.Is(err, context.Canceled) {
+//			log.Printf("autosave: %v", err)
+//		}
+//	}()
+func (r *Runtime) RunSnapshotAutosave(ctx context.Context, path string, interval time.Duration) error {
+	return startSnapshotAutosave(ctx, interval, func() <-chan error {
+		return r.SaveSnapshot(path)
+	}, time.NewTicker)
+}
+
+// startSnapshotAutosave validates ctx and interval before creating a ticker or
+// invoking save, then runs the serialized autosave loop.
+func startSnapshotAutosave(ctx context.Context, interval time.Duration, save func() <-chan error, newTicker func(time.Duration) *time.Ticker) error {
+	if ctx == nil {
+		return fmt.Errorf("snapshot: nil context")
+	}
+	if interval <= 0 {
+		return fmt.Errorf("snapshot: autosave interval must be positive")
+	}
+	ticker := newTicker(interval)
+	defer ticker.Stop()
+	return runSnapshotAutosave(ctx, ticker.C, save)
+}
+
+// runSnapshotAutosave drives serialized snapshot saves from ticks. It is
+// unexported so tests can inject a tick channel and save function without
+// sleeps or hidden goroutines in the exported API.
+func runSnapshotAutosave(ctx context.Context, ticks <-chan time.Time, save func() <-chan error) error {
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticks:
+			// Prefer an already-cancelled context over a buffered/ready tick.
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+			if err := <-save(); err != nil {
+				return err
+			}
+			if err := ctx.Err(); err != nil {
+				return err
+			}
+		}
+	}
 }
 
 var (
@@ -172,12 +248,12 @@ func (r *CommandRouter) Dispatch(senderID int64, data []byte) error {
 func (r *CommandRouter) DispatchPacket(sess *golem.Session, data []byte) error {
 	var packet ClientPacket
 	if err := packet.Unmarshal(data); err != nil {
-		sess.Close()
+		sess.RequestCloseWithReason("")
 		return err
 	}
 	for _, frame := range packet.Frames {
 		if err := r.Dispatch(sess.ID, frame); err != nil {
-			sess.Close()
+			sess.RequestCloseWithReason("")
 			return err
 		}
 	}
@@ -188,7 +264,7 @@ func (r *CommandRouter) DispatchPacket(sess *golem.Session, data []byte) error {
 // Malformed commands close the session.
 func (r *CommandRouter) DispatchDatagram(sess *golem.Session, data []byte) error {
 	if err := r.Dispatch(sess.ID, data); err != nil {
-		sess.Close()
+		sess.RequestCloseWithReason("")
 		return err
 	}
 	return nil

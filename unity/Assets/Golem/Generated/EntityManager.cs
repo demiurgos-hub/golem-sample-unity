@@ -38,6 +38,21 @@ namespace GolemSample.GolemGenerated
         public void OnUpdate(Action<object> fn) { _onUpdate = fn; }
         public void OnRemove(Action<long> fn) { _onRemove = fn; }
 
+        /// <summary>
+        /// Remove every known entity, fire OnRemove for each, and clear revision
+        /// tracking. Call on disconnect / before reconnect so stale views cannot
+        /// linger when remove frames were lost with the transport.
+        /// </summary>
+        public void Clear()
+        {
+            var ids = new List<long>(_entities.Keys);
+            foreach (var id in ids)
+            {
+                RemoveEntity(id);
+            }
+            _lastRevisions.Clear();
+        }
+
         public void RegisterMonster(Func<long, SyncedMonster> factory) { _monsterFactory = factory; }
         public void RegisterPlayer(Func<long, SyncedPlayer> factory) { _playerFactory = factory; }
 
@@ -75,11 +90,7 @@ namespace GolemSample.GolemGenerated
                 var revision = update.EntityRemoved.Revision;
                 if (IsStale(id, revision)) return;
                 _lastRevisions[id] = revision;
-                if (_entities.TryGetValue(id, out var removed) && _entities.Remove(id))
-                {
-                    if (removed is IEntityLifecycle lifecycle) lifecycle.OnRemove();
-                    _onRemove?.Invoke(id);
-                }
+                RemoveEntity(id);
             }
         }
 
@@ -109,6 +120,13 @@ namespace GolemSample.GolemGenerated
                 ApplyDeltaPlayer(delta);
                 return;
             }
+        }
+
+        private void RemoveEntity(long id)
+        {
+            if (!_entities.TryGetValue(id, out var removed) || !_entities.Remove(id)) return;
+            if (removed is IEntityLifecycle lifecycle) lifecycle.OnRemove();
+            _onRemove?.Invoke(id);
         }
 
         private bool IsStale(long entityId, ulong revision)
