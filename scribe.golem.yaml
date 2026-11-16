@@ -11,10 +11,11 @@ artifacts:
     source_guid: eb407b43946d7f36c93d6fd82931913d
     path: catalogs/monster_type.golem.yaml
     hash: 7662005074d195b6eb5191654021c7802b5f8ea2eb4bee5a9fcf8c4e29378c8a
-  - kind: footprint
-    source_guid: ffffffffffffffffffffffffffffffff
-    path: footprints.golem.yaml
-    hash: 5fc4e2d0005d2a22ade02516f6df83fd684e55e835dac29b87365f86605392b5
+  - kind: object_templates
+    entity: object-templates
+    source_guid: golem-object-templates
+    path: object-templates.json
+    hash: 520881c7be83de99097bdc9ab33fb333234b30b975eb7540f1e7ed3cb6bbca58
   - kind: entity_schema
     entity: Monster
     source_guid: 16a2c570c2bb77a498f273c161be43a9

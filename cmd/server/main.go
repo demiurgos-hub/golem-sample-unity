@@ -16,8 +16,8 @@ import (
 
 	"github.com/demiurgos-hub/golem-engine/golem"
 	"github.com/demiurgos-hub/golem-engine/golem/collision"
-	"github.com/demiurgos-hub/golem-engine/golem/footprint"
 	collisionresolv "github.com/demiurgos-hub/golem-engine/golem/collision/resolv"
+	"github.com/demiurgos-hub/golem-engine/golem/objecttemplate"
 	"golem-sample-unity/internal/gameplay"
 	"golem-sample-unity/internal/synced"
 	"golem-sample-unity/internal/world"
@@ -26,21 +26,21 @@ import (
 func main() {
 	worldDBPath := flag.String("world-db", world.DefaultWorldDBPath(),
 		"read-only path to StreamingAssets/world.db (default resolved from repo root via source path, not cwd)")
-	footprintsPath := flag.String("footprints", world.DefaultFootprintsPath(),
-		"path to footprints.golem.yaml")
+	templatesPath := flag.String("object-templates", world.DefaultObjectTemplatesPath(),
+		"path to object-templates.json")
 	decorCatalogPath := flag.String("decor-catalog", world.DefaultDecorTypeCatalogPath(),
 		"path to catalogs/decor_type.golem.yaml")
 	worldProbe := flag.Bool("world-probe", false,
 		"run in-process decor streaming/blocking probe then exit (no listen)")
 	flag.Parse()
 
-	if *worldDBPath == "" || *footprintsPath == "" || *decorCatalogPath == "" {
+	if *worldDBPath == "" || *templatesPath == "" || *decorCatalogPath == "" {
 		rootErr := ""
 		if _, err := world.RepoRoot(); err != nil {
 			rootErr = err.Error()
 		}
-		log.Fatalf("empty world asset path(s): world-db=%q footprints=%q decor-catalog=%q; %s",
-			*worldDBPath, *footprintsPath, *decorCatalogPath, rootErr)
+		log.Fatalf("empty world asset path(s): world-db=%q object-templates=%q decor-catalog=%q; %s",
+			*worldDBPath, *templatesPath, *decorCatalogPath, rootErr)
 	}
 
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
@@ -65,7 +65,7 @@ func main() {
 	layers := world.SetupLayers(backend)
 	decorMask := layers.Layer(world.LayerDecorCollision)
 
-	streamer, err := openWorldStreamer(*worldDBPath, *footprintsPath, *decorCatalogPath, backend, layers)
+	streamer, err := openWorldStreamer(*worldDBPath, *templatesPath, *decorCatalogPath, backend, layers)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func main() {
 }
 
 func openWorldStreamer(
-	dbPath, footprintsPath, decorCatalogPath string,
+	dbPath, templatesPath, decorCatalogPath string,
 	backend collision.Backend,
 	layers *collision.Layers,
 ) (*world.Streamer, error) {
@@ -202,21 +202,22 @@ func openWorldStreamer(
 	if err != nil {
 		return nil, err
 	}
-	set, err := footprint.Load(footprintsPath)
+	templates, _, err := objecttemplate.DecodeFile(templatesPath, objecttemplate.DefaultLimits())
 	if err != nil {
 		_ = db.Close()
-		return nil, fmt.Errorf("load footprints %s: %w", footprintsPath, err)
+		return nil, fmt.Errorf("load object templates %s: %w", templatesPath, err)
 	}
 	catalog, err := synced.LoadDecorTypeData(decorCatalogPath)
 	if err != nil {
 		_ = db.Close()
 		return nil, fmt.Errorf("load DecorType catalog %s: %w", decorCatalogPath, err)
 	}
-	placer := &footprint.Placer2D{
+	placer := &objecttemplate.Placer2D{
 		Backend: backend,
-		Resolve: footprint.LayersResolver(layers),
+		Catalog: templates,
+		Resolve: objecttemplate.LayersResolver(layers),
 	}
-	return world.NewStreamer(db, set, catalog, placer, world.StreamRadius), nil
+	return world.NewStreamer(db, catalog, placer, world.StreamRadius), nil
 }
 
 // streamAnchors centers residency on every player and monster so AI cannot walk

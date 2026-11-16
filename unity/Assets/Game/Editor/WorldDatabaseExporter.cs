@@ -327,7 +327,7 @@ namespace GolemSample.Unity.Editor
             {
                 error =
                     $"scale must be uniform (got lossyScale=({Format(s.x)}, {Format(s.y)}, {Format(s.z)})). " +
-                    "Footprint placement accepts a single positive Scale.";
+                    "The world database stores a single positive Scale.";
                 return false;
             }
 
@@ -363,7 +363,7 @@ namespace GolemSample.Unity.Editor
 
             error =
                 $"rotation Z must be an exact quarter turn (0/90/180/270), got {Format(euler.z)}°. " +
-                "Footprint placement rejects other angles.";
+                "Object Template placement rejects other angles.";
             return false;
         }
 

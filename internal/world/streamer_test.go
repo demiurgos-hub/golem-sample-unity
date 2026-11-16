@@ -3,52 +3,59 @@ package world
 import (
 	"testing"
 
-	"github.com/demiurgos-hub/golem-engine/golem/footprint"
 	collisionresolv "github.com/demiurgos-hub/golem-engine/golem/collision/resolv"
+	"github.com/demiurgos-hub/golem-engine/golem/objecttemplate"
 	"golem-sample-unity/internal/synced"
 )
 
-func loadCatalogAndFootprints(t *testing.T) (*synced.DecorTypeData, *footprint.Set) {
+func loadCatalogAndTemplates(t *testing.T) (*synced.DecorTypeData, *objecttemplate.Catalog) {
 	t.Helper()
 	catalog, err := synced.LoadDecorTypeData(DefaultDecorTypeCatalogPath())
 	if err != nil {
 		t.Fatalf("LoadDecorTypeData: %v", err)
 	}
-	set, err := footprint.Load(DefaultFootprintsPath())
+	templates, _, err := objecttemplate.DecodeFile(DefaultObjectTemplatesPath(), objecttemplate.DefaultLimits())
 	if err != nil {
-		t.Fatalf("footprint.Load: %v", err)
+		t.Fatalf("objecttemplate.DecodeFile: %v", err)
 	}
-	return catalog, set
+	return catalog, templates
+}
+
+func newPlacer(t *testing.T, templates *objecttemplate.Catalog) (*objecttemplate.Placer2D, *collisionresolv.ResolvBackend, uint32) {
+	t.Helper()
+	backend := collisionresolv.New()
+	layers := SetupLayers(backend)
+	return &objecttemplate.Placer2D{
+		Backend: backend,
+		Catalog: templates,
+		Resolve: objecttemplate.LayersResolver(layers),
+	}, backend, layers.Layer(LayerDecorCollision)
 }
 
 func TestUnityGoContract_WallGUIDAndBlockingCount(t *testing.T) {
-	catalog, set := loadCatalogAndFootprints(t)
+	catalog, templates := loadCatalogAndTemplates(t)
 
 	wall, ok := catalog.Items[1]
 	if !ok || !wall.Blocking {
 		t.Fatalf("DecorType 1 must be blocking wall, got %+v", wall)
 	}
-	fp, ok := set.LookupGUID(wall.Prefab)
-	if !ok {
-		t.Fatalf("wall prefab GUID %q did not resolve", wall.Prefab)
-	}
 	if wall.Prefab != "63ad6a0a781c6d44ead279f18d921318" {
 		t.Fatalf("unexpected wall GUID %q", wall.Prefab)
 	}
-	if len(fp.Shapes) != 1 || fp.Shapes[0].Layer != LayerDecorCollision {
-		t.Fatalf("wall shapes=%+v", fp.Shapes)
+	tmpl, ok := templates.Template(wall.Prefab)
+	if !ok {
+		t.Fatalf("wall prefab GUID %q has no Object Template", wall.Prefab)
+	}
+	if len(tmpl.Shapes) != 1 || tmpl.Shapes[0].Layer != LayerDecorCollision || tmpl.Shapes[0].Kind != "box" {
+		t.Fatalf("wall shapes=%+v", tmpl.Shapes)
 	}
 
 	pavement, ok := catalog.Items[2]
 	if !ok || pavement.Blocking {
 		t.Fatalf("DecorType 2 must be non-blocking pavement, got %+v", pavement)
 	}
-	pfp, ok := set.LookupGUID(pavement.Prefab)
-	if !ok {
-		t.Fatalf("pavement GUID missing")
-	}
-	if len(pfp.Shapes) != 0 {
-		t.Fatalf("pavement must have empty shapes, got %d", len(pfp.Shapes))
+	if _, ok := templates.Template(pavement.Prefab); ok {
+		t.Fatal("non-blocking pavement must not export an Object Template")
 	}
 
 	db, err := OpenDB(DefaultWorldDBPath())
@@ -60,31 +67,42 @@ func TestUnityGoContract_WallGUIDAndBlockingCount(t *testing.T) {
 	if err != nil {
 		t.Fatalf("QueryAll: %v", err)
 	}
-	blocking := FilterBlockingInRadius(rows, catalog, set, 0, 0, 1000)
+	blocking := FilterBlockingInRadius(rows, catalog, 0, 0, 1000)
 	if len(blocking) != 9 {
 		t.Fatalf("blocking rows=%d, want 9", len(blocking))
 	}
 }
 
-func newTestStreamer(t *testing.T, radius float64) (*Streamer, *DB, *synced.DecorTypeData, *footprint.Set) {
+func TestStreamer_BlockingRowWithoutTemplateFails(t *testing.T) {
+	db, err := OpenDB(DefaultWorldDBPath())
+	if err != nil {
+		t.Fatalf("OpenDB: %v", err)
+	}
+	t.Cleanup(func() { _ = db.Close() })
+	catalog, templates := loadCatalogAndTemplates(t)
+	wall := catalog.Items[1]
+	wall.Prefab = "00000000000000000000000000000000"
+	catalog.Items[1] = wall
+	placer, _, _ := newPlacer(t, templates)
+	if err := NewStreamer(db, catalog, placer, StreamRadius).Tick([]Anchor{{X: 0, Y: 0}}); err == nil {
+		t.Fatal("expected a blocking row without an Object Template to fail")
+	}
+}
+
+func newTestStreamer(t *testing.T, radius float64) (*Streamer, *DB, *synced.DecorTypeData) {
 	t.Helper()
 	db, err := OpenDB(DefaultWorldDBPath())
 	if err != nil {
 		t.Fatalf("OpenDB: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	catalog, set := loadCatalogAndFootprints(t)
-	backend := collisionresolv.New()
-	layers := SetupLayers(backend)
-	placer := &footprint.Placer2D{
-		Backend: backend,
-		Resolve: footprint.LayersResolver(layers),
-	}
-	return NewStreamer(db, set, catalog, placer, radius), db, catalog, set
+	catalog, templates := loadCatalogAndTemplates(t)
+	placer, _, _ := newPlacer(t, templates)
+	return NewStreamer(db, catalog, placer, radius), db, catalog
 }
 
 func TestStreamer_PlaceRemoveBalance(t *testing.T) {
-	s, _, _, _ := newTestStreamer(t, 8)
+	s, _, _ := newTestStreamer(t, 8)
 
 	if err := s.Tick([]Anchor{{X: 0, Y: 0}}); err != nil {
 		t.Fatalf("Tick in: %v", err)
@@ -132,7 +150,7 @@ func TestStreamer_PlaceRemoveBalance(t *testing.T) {
 
 func TestStreamer_TwoAnchorsDedup(t *testing.T) {
 	const radius = 8.0
-	s, db, catalog, set := newTestStreamer(t, radius)
+	s, db, catalog := newTestStreamer(t, radius)
 	rows, err := db.QueryAll()
 	if err != nil {
 		t.Fatalf("QueryAll: %v", err)
@@ -141,10 +159,10 @@ func TestStreamer_TwoAnchorsDedup(t *testing.T) {
 	a1 := Anchor{X: 0, Y: 0}
 	a2 := Anchor{X: 1, Y: 1}
 	want := map[int64]struct{}{}
-	for _, r := range FilterBlockingInRadius(rows, catalog, set, a1.X, a1.Y, radius) {
+	for _, r := range FilterBlockingInRadius(rows, catalog, a1.X, a1.Y, radius) {
 		want[r.ObjectID] = struct{}{}
 	}
-	for _, r := range FilterBlockingInRadius(rows, catalog, set, a2.X, a2.Y, radius) {
+	for _, r := range FilterBlockingInRadius(rows, catalog, a2.X, a2.Y, radius) {
 		want[r.ObjectID] = struct{}{}
 	}
 	if len(want) == 0 {
@@ -177,7 +195,7 @@ func TestStreamer_TwoAnchorsDedup(t *testing.T) {
 
 func TestStreamer_HysteresisNoBoundaryThrash(t *testing.T) {
 	const placeR = 5.0
-	s, db, _, _ := newTestStreamer(t, placeR)
+	s, db, _ := newTestStreamer(t, placeR)
 	rows, err := db.QueryAll()
 	if err != nil {
 		t.Fatalf("QueryAll: %v", err)
@@ -246,15 +264,9 @@ func TestBlockingProbe_ClampAndSlide(t *testing.T) {
 		t.Fatalf("OpenDB: %v", err)
 	}
 	t.Cleanup(func() { _ = db.Close() })
-	catalog, set := loadCatalogAndFootprints(t)
-
-	backend := collisionresolv.New()
-	layers := SetupLayers(backend)
-	placer := &footprint.Placer2D{
-		Backend: backend,
-		Resolve: footprint.LayersResolver(layers),
-	}
-	s := NewStreamer(db, set, catalog, placer, StreamRadius)
+	catalog, templates := loadCatalogAndTemplates(t)
+	placer, backend, decorMask := newPlacer(t, templates)
+	s := NewStreamer(db, catalog, placer, StreamRadius)
 	if err := s.Tick([]PlayerPos{{X: 0, Y: 0}}); err != nil {
 		t.Fatalf("Tick: %v", err)
 	}
@@ -264,7 +276,6 @@ func TestBlockingProbe_ClampAndSlide(t *testing.T) {
 		t.Fatal("expected walls placed near origin")
 	}
 
-	decorMask := layers.Layer(LayerDecorCollision)
 	overlaps := func(x, y, radius float64) bool {
 		return len(backend.OverlapCircle(x, y, radius, decorMask)) > 0
 	}
@@ -308,7 +319,7 @@ func TestBlockingProbe_ClampAndSlide(t *testing.T) {
 		x, y = ResolveSlide(x, y, 0, dy, ActorRadius, overlaps)
 	}
 	if !overlaps(wall.PosX, wall.PosY, 0.1) {
-		t.Fatal("wall footprint missing at wall center")
+		t.Fatal("wall collision missing at wall center")
 	}
 	if overlaps(x, y, ActorRadius) {
 		t.Fatalf("player penetrated wall: pos=(%v,%v) wall=(%v,%v)", x, y, wall.PosX, wall.PosY)

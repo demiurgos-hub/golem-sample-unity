@@ -211,7 +211,7 @@ namespace GolemSample.Unity
             for (var i = 0; i < rows.Count; i++)
             {
                 var row = rows[i];
-                if (!IsFootprintCompatible(row, out var rejectReason))
+                if (!IsTemplateCompatible(row, out var rejectReason))
                 {
                     RejectRow(row.ObjectId, rejectReason);
                     continue;
@@ -251,11 +251,11 @@ namespace GolemSample.Unity
         }
 
         /// <summary>
-        /// Same acceptance rule as golem/footprint.Placer2D (validateScale + quarterTurnIndex):
+        /// Same acceptance rule as golem/objecttemplate.Placer2D (positive scale + quarterTurn):
         /// Scale &gt; 0 and finite; RotZ normalizes to an exact 0/90/180/270 quarter turn.
         /// Rows that fail would render without server collision — skip them.
         /// </summary>
-        private static bool IsFootprintCompatible(WorldDecorRow row, out string reason)
+        private static bool IsTemplateCompatible(WorldDecorRow row, out string reason)
         {
             if (float.IsNaN(row.Scale) || float.IsInfinity(row.Scale) || row.Scale <= 0f)
             {
@@ -269,7 +269,7 @@ namespace GolemSample.Unity
                 return false;
             }
 
-            // Mirrors footprint.quarterTurnIndex: math.Mod then lift negatives into [0,360).
+            // Mirrors objecttemplate.quarterTurn: math.Mod then lift negatives into [0,360).
             var mod = row.RotZ % 360f;
             if (mod < 0f)
             {
@@ -296,7 +296,7 @@ namespace GolemSample.Unity
 
             Debug.LogWarning(
                 $"[DecorStreamer] Skipping ObjectID {objectId}: {reason}. " +
-                "Server footprint placer would reject this row (no collision); not rendering it.",
+                "Server Object Template placer would reject this row (no collision); not rendering it.",
                 this);
         }
 
@@ -332,7 +332,7 @@ namespace GolemSample.Unity
         private bool TryInstantiate(WorldDecorRow row)
         {
             // Re-check at spawn time so a raced/pending bad row never becomes visible geometry.
-            if (!IsFootprintCompatible(row, out var rejectReason))
+            if (!IsTemplateCompatible(row, out var rejectReason))
             {
                 RejectRow(row.ObjectId, rejectReason);
                 return false;

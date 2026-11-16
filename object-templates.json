@@ -1,0 +1,10 @@
+{
+  "Generator": "Golem Scribe object templates v1",
+  "Version": 1,
+  "CatalogID": "object-templates",
+  "Revision": 1,
+  "Dimensions": 2,
+  "Templates": [
+    {"ID":"63ad6a0a781c6d44ead279f18d921318","SourceID":"Assets/Game/Decor/decor_Wall.prefab","Shapes":[{"ID":"root/collider2d/0","Kind":"box","OffsetX":0,"OffsetY":0,"Width":1,"Height":1,"Layer":"DecorCollision"}]}
+  ]
+}

@@ -55,9 +55,9 @@ func TestFilterBlockingInRadius(t *testing.T) {
 		t.Fatalf("QueryAll: %v", err)
 	}
 
-	catalog, set := loadCatalogAndFootprints(t)
+	catalog, _ := loadCatalogAndTemplates(t)
 
-	blocking := FilterBlockingInRadius(rows, catalog, set, 0, 0, 100)
+	blocking := FilterBlockingInRadius(rows, catalog, 0, 0, 100)
 	if len(blocking) != 9 {
 		t.Fatalf("blocking rows=%d, want 9 walls", len(blocking))
 	}
@@ -77,7 +77,7 @@ func TestFilterBlockingInRadius(t *testing.T) {
 		t.Fatalf("pavement rows=%d, want 5", pavementOnly)
 	}
 
-	none := FilterBlockingInRadius(rows, catalog, set, 0, 0, 0.01)
+	none := FilterBlockingInRadius(rows, catalog, 0, 0, 0.01)
 	// Walls sit on integer coords around an enclosure; origin may or may not host one.
 	for _, r := range none {
 		if math.Hypot(r.PosX, r.PosY) > 0.01 {

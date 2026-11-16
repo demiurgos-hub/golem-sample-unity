@@ -19,4 +19,4 @@ MonoBehaviour:
   assetFolder: Assets/Golem
   autoExportOnAssetChange: 1
   autoBakeOnExport: 1
-  footprintsPath: footprints.golem.yaml
+  objectTemplatesPath: object-templates.json

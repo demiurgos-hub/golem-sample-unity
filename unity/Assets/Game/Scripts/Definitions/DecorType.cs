@@ -18,7 +18,7 @@ namespace GolemSample.Unity
         public bool Blocking;
 
         /// <summary>
-        /// Prefab reference exported as the asset GUID — the same key footprint.Set.LookupGUID uses.
+        /// Prefab reference exported as the asset GUID — the Object Template ID the server places for blocking decor.
         /// </summary>
         [GolemAssetRef(4)]
         public GameObject Prefab;

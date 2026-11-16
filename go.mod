@@ -1,11 +1,12 @@
 module golem-sample-unity
 
-go 1.25.4
+go 1.27.1
 
 require (
 	github.com/demiurgos-hub/golem-engine v0.0.0
-	github.com/demiurgos-hub/golem-engine/golem/collision v0.3.1-0.20261013153120-49b2e72c189a
+	github.com/demiurgos-hub/golem-engine/golem/collision v0.3.1-0.20261115012239-c9fd88dc8adc
 	github.com/demiurgos-hub/golem-engine/golem/collision/resolv v0.0.0-00010101000000-000000000000
+	github.com/demiurgos-hub/golem-engine/golem/objecttemplate v0.0.0-20261116120853-bdf3d60d7b11
 	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.54.0
 )
@@ -13,7 +14,10 @@ require (
 require (
 	github.com/alitto/pond/v2 v2.7.1 // indirect
 	github.com/coder/websocket v1.8.14 // indirect
-	github.com/demiurgos-hub/golem-engine/golem/nav v0.3.1-0.20261013153120-49b2e72c189a // indirect
+	github.com/demiurgos-hub/golem-engine/golem/geometry v0.0.0-20261115012239-c9fd88dc8adc // indirect
+	github.com/demiurgos-hub/golem-engine/golem/nav v0.3.1-0.20261113161118-0c6a59582abb // indirect
+	github.com/demiurgos-hub/golem-engine/golem/physics3d v0.0.0-20261115012239-c9fd88dc8adc // indirect
+	github.com/demiurgos-hub/navmesh-go v0.0.0-20261116105330-b17cd9f21c78 // indirect
 	github.com/dunglas/httpsfv v1.1.0 // indirect
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/google/uuid v1.6.0 // indirect
@@ -40,3 +44,5 @@ replace github.com/demiurgos-hub/golem-engine/golem/collision => ../../golem-eng
 replace github.com/demiurgos-hub/golem-engine/golem/collision/resolv => ../../golem-engine/golem/collision/resolv
 
 replace github.com/demiurgos-hub/golem-engine/golem/nav => ../../golem-engine/golem/nav
+
+replace github.com/demiurgos-hub/golem-engine/golem/objecttemplate => ../../golem-engine/golem/objecttemplate

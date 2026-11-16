@@ -1,6 +1,6 @@
 # Golem sample (Unity + Go)
 
-Server-authoritative Golem sample: a Go WebTransport server and a Unity 6 client. Entity schemas and catalogs are authored in Unity via Scribe; monsters are data-driven; movement and monster AI run on the server tick; scene-placed decor is exported to SQLite and streamed as collision footprints (server) and visuals (client).
+Server-authoritative Golem sample: a Go WebTransport server and a Unity 6 client. Entity schemas and catalogs are authored in Unity via Scribe; monsters are data-driven; movement and monster AI run on the server tick; scene-placed decor is exported to SQLite and streamed as Object Template collision (server) and visuals (client).
 
 **Open the `unity/` subfolder in Unity Hub.** The repository root is the Go server workspace; opening it in Unity creates an empty project without the sample scene or Golem menu. The client scene is `unity/Assets/Scenes/SampleScene.unity`.
 
@@ -11,7 +11,7 @@ Server-authoritative Golem sample: a Go WebTransport server and a Unity 6 client
 | **Unity 6** | Project version `6000.3.13f1` (`unity/ProjectSettings/ProjectVersion.txt`). |
 | **Local `golem-engine`** | Checkout at `../../golem-engine` (the sample lives under `golem-samples/golem-sample-unity`). Go `replace` directives in `go.mod` point there. Unity consumes the built UPM at `file:…/golem-engine/artifacts/upm/io.demiurgos.golemengine` (absolute path in `unity/Packages/manifest.json`). |
 | **Local `webtransport-csharp`** | Checkout alongside `golem-engine`; the Unity manifest points to its built `io.demiurgos.webtransport` package. |
-| **Go** | Version from `go.mod` (currently `1.25.4`). |
+| **Go** | Version from `go.mod` (currently `1.27.1`). |
 
 This sample uses local engine checkouts. If you use a different directory layout, update the Go replacement paths, Unity package paths, and **Golem > Settings > Project Root** (the folder containing `golem.yaml`).
 
@@ -24,7 +24,7 @@ internal/world/       SQLite world DB reader, decor streamer, movement slide
 internal/synced/      Bake output (generated — do not hand-edit)
 schemas/              Scribe-owned entity/type/world YAML (+ handwritten commands/events)
 catalogs/             Scribe-owned catalog data YAML
-footprints.golem.yaml Scribe-owned collider footprints (prefab GUID keys)
+object-templates.json Scribe-owned Object Templates (prefab GUID IDs)
 scribe.golem.yaml     Scribe manifest (generated)
 golem.yaml            Bake / integration paths
 unity/Assets/Game/    Authored game content + runtime/editor C# (Game.Runtime / Game.Editor)
@@ -45,7 +45,7 @@ Assembly split:
 3. **Server-authoritative movement** — latest `Move` is standing intent (normalized, hostile input sanitized), integrated each tick at units/second with ~250 ms expiry. Session event `LocalPlayerAssigned` tells each client which entity it controls.
 4. **Client** — bounded-rate intent (~30 Hz) with one zero-vector send on release; damped camera follow; time-based snapshot interpolation (no prediction).
 5. **Monster AI + interest** — wander near home, chase nearby players at catalog `MoveSpeed`; `CellSize` enables per-session FOI.
-6. **Decor (not entities)** — wall/pavement prefabs with footprints → `footprints.golem.yaml`; `DecorType` catalog (id, name, blocking, prefab GUID); scene placements exported via **Game > World > Export World Database** to `world.db`. Server streams blocking rows into a resolv collision backend and blocks/slides movement; client streams the same rows as visuals.
+6. **Decor (not entities)** — the wall prefab carries `GolemObjectTemplate` → `object-templates.json` (non-blocking pavement has no template); `DecorType` catalog (id, name, blocking, prefab GUID); scene placements exported via **Game > World > Export World Database** to `world.db`. Server streams blocking rows into a resolv collision backend and blocks/slides movement; client streams the same rows as visuals.
 
 ## How to run
 
@@ -55,14 +55,14 @@ Assembly split:
 go run ./cmd/server
 ```
 
-Listens on `https://localhost:8080/wt` with a dev self-signed cert. Optional flags: `-world-db`, `-footprints`, `-decor-catalog` (defaults resolve from the repo root via source path, not cwd). `-world-probe` runs an in-process streaming/blocking check and exits.
+Listens on `https://localhost:8080/wt` with a dev self-signed cert. Optional flags: `-world-db`, `-object-templates`, `-decor-catalog` (defaults resolve from the repo root via source path, not cwd). `-world-probe` runs an in-process streaming/blocking check and exits.
 
 **Client:** open `unity/` in Unity 6, play `Assets/Scenes/SampleScene.unity` (URL is `https://localhost:8080/wt`, untrusted certs allowed). Start the server first.
 
 ## Authoring loop
 
-1. Edit Unity sources: entity prefabs / authoring components, `MonsterType` / `DecorType` assets, footprint-marked decor prefabs, or scene `DecorInstance` placements.
-2. **Golem > Scribe > Export All** — regenerates Scribe YAML (`schemas/`, `catalogs/`, `footprints.golem.yaml`, `scribe.golem.yaml`) and typically triggers bake into `internal/synced/` and `unity/Assets/Golem/{Generated,Views}/`.
+1. Edit Unity sources: entity prefabs / authoring components, `MonsterType` / `DecorType` assets, template-marked decor prefabs, or scene `DecorInstance` placements.
+2. **Golem > Scribe > Export All** — regenerates Scribe YAML (`schemas/`, `catalogs/`, `object-templates.json`, `scribe.golem.yaml`) and typically triggers bake into `internal/synced/` and `unity/Assets/Golem/{Generated,Views}/`.
 3. If the decor scene changed: **Game > World > Export World Database**.
 4. Commit the generated artifacts (including `scribe.golem.yaml` and `world.db` when applicable).
 5. Restart / run the Go server and play the client.
@@ -80,7 +80,7 @@ Do not run that batch-mode command while this project’s Editor is already open
 ### Do not hand-edit
 
 - `schemas/entities/`, `schemas/types/`, `schemas/world/` (Scribe)
-- `catalogs/*.golem.yaml`, `footprints.golem.yaml`, `scribe.golem.yaml`
+- `catalogs/*.golem.yaml`, `object-templates.json`, `scribe.golem.yaml`
 - `internal/synced/`
 - `unity/Assets/Golem/Generated/`
 

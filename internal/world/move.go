@@ -1,7 +1,7 @@
 package world
 
 // ActorRadius is the overlap-query radius used for players and monsters when
-// testing candidate positions against placed decor footprints.
+// testing candidate positions against placed decor collision shapes.
 const ActorRadius = 0.35
 
 // OverlapFunc reports whether a circle at (x, y) with the given radius overlaps

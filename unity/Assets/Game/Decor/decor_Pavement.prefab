@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4258661862582954551}
   - component: {fileID: 8060107742505405959}
-  - component: {fileID: 7995729864858600713}
   - component: {fileID: 5867424050814482485}
   m_Layer: 0
   m_Name: decor_Pavement
@@ -93,22 +92,6 @@ SpriteRenderer:
   m_SpriteTileMode: 0
   m_WasSpriteAssigned: 1
   m_SpriteSortPoint: 0
---- !u!114 &7995729864858600713
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8399599063039188001}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8c4e2f1a9b0d4e6f8a1c3d5e7f902b14, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: GolemEngine.Unity::GolemEngine.Unity.GolemFootprint
-  alias: pavement
-  includedLayers:
-    serializedVersion: 2
-    m_Bits: 256
 --- !u!114 &5867424050814482485
 MonoBehaviour:
   m_ObjectHideFlags: 0

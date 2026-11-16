@@ -41,13 +41,13 @@ func DefaultWorldDBPath() string {
 	return filepath.Join(root, "unity", "Assets", "StreamingAssets", "world.db")
 }
 
-// DefaultFootprintsPath is the Scribe-exported footprint catalog at the repo root.
-func DefaultFootprintsPath() string {
+// DefaultObjectTemplatesPath is the Scribe-exported Object Template catalog at the repo root.
+func DefaultObjectTemplatesPath() string {
 	root, err := RepoRoot()
 	if err != nil {
 		return ""
 	}
-	return filepath.Join(root, "footprints.golem.yaml")
+	return filepath.Join(root, "object-templates.json")
 }
 
 // DefaultDecorTypeCatalogPath is the Scribe-exported DecorType catalog.

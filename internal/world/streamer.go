@@ -5,11 +5,11 @@ import (
 	"math"
 
 	"github.com/demiurgos-hub/golem-engine/golem/collision"
-	"github.com/demiurgos-hub/golem-engine/golem/footprint"
+	"github.com/demiurgos-hub/golem-engine/golem/objecttemplate"
 	"golem-sample-unity/internal/synced"
 )
 
-// Layer names are the Unity↔Go contract. DecorCollision must match footprints.golem.yaml.
+// Layer names are the Unity↔Go contract. DecorCollision must match object-templates.json.
 const (
 	LayerDefault        = "default"
 	LayerDecorCollision = "DecorCollision"
@@ -40,29 +40,28 @@ type StreamStats struct {
 }
 
 // Streamer loads blocking decor near stream anchors into a collision backend each tick.
+// Every blocking DecorType must have an Object Template keyed by its prefab GUID.
 type Streamer struct {
-	DB         *DB
-	Footprints *footprint.Set
-	Catalog    *synced.DecorTypeData
-	Placer     *footprint.Placer2D
-	Radius     float64 // place radius; remove uses Radius+StreamRemoveMargin
+	DB      *DB
+	Catalog *synced.DecorTypeData
+	Placer  *objecttemplate.Placer2D
+	Radius  float64 // place radius; remove uses Radius+StreamRemoveMargin
 
-	placed map[int64]*footprint.Handle2D
+	placed map[int64]*objecttemplate.Placement2D
 	stats  StreamStats
 }
 
 // NewStreamer builds a streamer. radius <= 0 uses StreamRadius.
-func NewStreamer(db *DB, set *footprint.Set, catalog *synced.DecorTypeData, placer *footprint.Placer2D, radius float64) *Streamer {
+func NewStreamer(db *DB, catalog *synced.DecorTypeData, placer *objecttemplate.Placer2D, radius float64) *Streamer {
 	if radius <= 0 {
 		radius = StreamRadius
 	}
 	return &Streamer{
-		DB:         db,
-		Footprints: set,
-		Catalog:    catalog,
-		Placer:     placer,
-		Radius:     radius,
-		placed:     make(map[int64]*footprint.Handle2D),
+		DB:      db,
+		Catalog: catalog,
+		Placer:  placer,
+		Radius:  radius,
+		placed:  make(map[int64]*objecttemplate.Placement2D),
 	}
 }
 
@@ -84,7 +83,7 @@ func (s *Streamer) Stats() StreamStats {
 	return st
 }
 
-// Tick refreshes placed footprints for the union of anchor radii.
+// Tick refreshes placed templates for the union of anchor radii.
 // Intended to run on the server tick goroutine; the bounds query is cheap for
 // the sample database (~14 rows) and does not leave the tick goroutine.
 //
@@ -120,9 +119,6 @@ func (s *Streamer) Tick(anchors []Anchor) error {
 		if err != nil {
 			return err
 		}
-		if handle == nil {
-			continue
-		}
 		s.placed[id] = handle
 		s.stats.PlaceCalls++
 	}
@@ -142,69 +138,38 @@ func (s *Streamer) blockingNear(anchors []Anchor, radius float64) (map[int64]Dec
 		if err != nil {
 			return nil, err
 		}
-		for _, row := range rows {
-			if !s.isBlocking(row) {
-				continue
-			}
-			if math.Hypot(row.PosX-a.X, row.PosY-a.Y) > radius {
-				continue
-			}
+		for _, row := range FilterBlockingInRadius(rows, s.Catalog, a.X, a.Y, radius) {
 			out[row.ObjectID] = row
 		}
 	}
 	return out, nil
 }
 
-func (s *Streamer) isBlocking(row DecorRow) bool {
-	if s.Catalog == nil {
-		return false
-	}
-	dt, ok := s.Catalog.Items[row.DecorTypeId]
-	if !ok || !dt.Blocking {
-		return false
-	}
-	fp, ok := s.Footprints.LookupGUID(dt.Prefab)
-	if !ok || len(fp.Shapes) == 0 {
-		return false
-	}
-	return true
-}
-
-func (s *Streamer) placeRow(row DecorRow) (*footprint.Handle2D, error) {
+func (s *Streamer) placeRow(row DecorRow) (*objecttemplate.Placement2D, error) {
 	dt := s.Catalog.Items[row.DecorTypeId]
-	fp, ok := s.Footprints.LookupGUID(dt.Prefab)
-	if !ok {
-		return nil, fmt.Errorf("decor object %d: unknown prefab GUID %q", row.ObjectID, dt.Prefab)
-	}
-	if len(fp.Shapes) == 0 {
-		return nil, nil
-	}
-	handle, err := s.Placer.Place(fp, footprint.Transform2D{
+	handle, err := s.Placer.Place(dt.Prefab, objecttemplate.Transform2D{
 		X:               row.PosX,
 		Y:               row.PosY,
-		Scale:           row.Scale,
+		ScaleX:          row.Scale,
+		ScaleY:          row.Scale,
 		RotationDegrees: row.RotZ,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("place decor object %d: %w", row.ObjectID, err)
+		return nil, fmt.Errorf("place decor object %d (prefab %q; re-export Object Templates if it is missing): %w", row.ObjectID, dt.Prefab, err)
 	}
 	return handle, nil
 }
 
-// FilterBlockingInRadius is pure helper logic for tests: which rows near (cx,cy)
-// are blocking given catalog + footprints.
-func FilterBlockingInRadius(rows []DecorRow, catalog *synced.DecorTypeData, set *footprint.Set, cx, cy, radius float64) []DecorRow {
+// FilterBlockingInRadius returns the rows within radius of (cx,cy) whose
+// DecorType is blocking.
+func FilterBlockingInRadius(rows []DecorRow, catalog *synced.DecorTypeData, cx, cy, radius float64) []DecorRow {
 	var out []DecorRow
+	if catalog == nil {
+		return out
+	}
 	for _, row := range rows {
-		if catalog == nil {
-			continue
-		}
 		dt, ok := catalog.Items[row.DecorTypeId]
 		if !ok || !dt.Blocking {
-			continue
-		}
-		fp, ok := set.LookupGUID(dt.Prefab)
-		if !ok || len(fp.Shapes) == 0 {
 			continue
 		}
 		if math.Hypot(row.PosX-cx, row.PosY-cy) > radius {
